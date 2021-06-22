@@ -16,9 +16,9 @@ public:
         Node<ND, LD> * node_ptr = graph.addNode(data);
         m_map_hash2node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
     }
-    void addLinkWithHash(LD edge_attributes, Hash hash_source, Hash hash_destination)
+    void addEdgeWithHash(LD edge_attributes, Hash hash_source, Hash hash_destination)
     {
-        graph.addLink(
+        graph.addEdge(
             edge_attributes,
             m_map_hash2node_ptr_.at(hash_source),
             m_map_hash2node_ptr_.at(hash_destination));

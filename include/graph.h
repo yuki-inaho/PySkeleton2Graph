@@ -5,7 +5,7 @@
 #include "typedef.h"
 
 template <typename ND, typename LD> struct Node;
-template <typename ND, typename LD> struct Link;
+template <typename ND, typename LD> struct Edge;
 template <typename ND, typename LD> struct Graph;
 
 template <typename ND, typename LD>
@@ -14,7 +14,7 @@ struct Node
     ND data;
     Graph<ND, LD> &graph;
     Node<ND, LD> *prev, *next;
-    Link<ND, LD> *firstIn, *lastIn, *firstOut, *lastOut;
+    Edge<ND, LD> *firstIn, *lastIn, *firstOut, *lastOut;
 
     Node(ND data, Graph<ND, LD> &graph)
         : data(std::move(data)),
@@ -52,9 +52,9 @@ struct Node
     }
 
     template <typename CBack>
-    bool forEachOutgoingLink(CBack cb)
+    bool forEachOutgoingEdge(CBack cb)
     {
-        for (Link<ND, LD> *x = firstOut; x; x = x->nextInFrom)
+        for (Edge<ND, LD> *x = firstOut; x; x = x->nextInFrom)
         {
             if (!cb(x))
                 return false;
@@ -63,9 +63,9 @@ struct Node
     }
 
     template <typename CBack>
-    bool forEachIncomingLink(CBack cb)
+    bool forEachIncomingEdge(CBack cb)
     {
-        for (Link<ND, LD> *x = firstIn; x; x = x->nextInTo)
+        for (Edge<ND, LD> *x = firstIn; x; x = x->nextInTo)
         {
             if (!cb(x))
                 return false;
@@ -75,27 +75,27 @@ struct Node
 };
 
 template <typename ND, typename LD>
-struct Link
+struct Edge
 {
     LD data;
     Node<ND, LD> *from, *to;
-    Link<ND, LD> *prev, *next, *prevInFrom, *nextInFrom, *prevInTo, *nextInTo;
-    Link(LD data, Node<ND, LD> *from, Node<ND, LD> *to)
+    Edge<ND, LD> *prev, *next, *prevInFrom, *nextInFrom, *prevInTo, *nextInTo;
+    Edge(LD data, Node<ND, LD> *from, Node<ND, LD> *to)
         : data(std::move(data)),
           from(from), to(to),
-          prev(from->graph.lastLink), next(nullptr),
+          prev(from->graph.lastEdge), next(nullptr),
           prevInFrom(from->lastOut), nextInFrom(nullptr),
           prevInTo(to->lastIn), nextInTo(nullptr)
     {
         if (&from->graph != &to->graph)
         {
-            throw std::runtime_error("Cannot link nodes from different graphs");
+            throw std::runtime_error("Cannot Edge nodes from different graphs");
         }
         if (prev)
             prev->next = this;
         else
-            from->graph.firstLink = this;
-        from->graph.lastLink = this;
+            from->graph.firstEdge = this;
+        from->graph.lastEdge = this;
         if (prevInFrom)
             prevInFrom->nextInFrom = this;
         else
@@ -108,12 +108,12 @@ struct Link
         to->lastIn = this;
     }
 
-    Link(Node<ND, LD> *from, Node<ND, LD> *to)
-        : Link<ND, LD>(LD(), from, to)
+    Edge(Node<ND, LD> *from, Node<ND, LD> *to)
+        : Edge<ND, LD>(LD(), from, to)
     {
     }
 
-    ~Link()
+    ~Edge()
     {
         if (prevInTo)
             prevInTo->nextInTo = nextInTo;
@@ -134,27 +134,27 @@ struct Link
         if (prev)
             prev->next = next;
         else
-            from->graph.firstLink = next;
+            from->graph.firstEdge = next;
         if (next)
             next->prev = prev;
         else
-            from->graph.lastLink = prev;
+            from->graph.lastEdge = prev;
     }
 
-    Link(const Link<ND, LD> &) = delete;
-    Link(Link<ND, LD> &&) = delete;
-    Link &operator=(const Link<ND, LD> &) = delete;
+    Edge(const Edge<ND, LD> &) = delete;
+    Edge(Edge<ND, LD> &&) = delete;
+    Edge &operator=(const Edge<ND, LD> &) = delete;
 };
 
 template <typename ND, typename LD>
 struct Graph
 {
     Node<ND, LD> *firstNode, *lastNode;
-    Link<ND, LD> *firstLink, *lastLink;
+    Edge<ND, LD> *firstEdge, *lastEdge;
 
     Graph()
         : firstNode(nullptr), lastNode(nullptr),
-          firstLink(nullptr), lastLink(nullptr)
+          firstEdge(nullptr), lastEdge(nullptr)
     {
     }
 
@@ -169,9 +169,9 @@ struct Graph
     Graph<ND, LD> &operator=(const Graph<ND, LD> &) = delete;
 
     Node<ND, LD> *addNode(ND data) { return new Node<ND, LD>(data, *this); }
-    Link<ND, LD> *addLink(LD data, Node<ND, LD> *from, Node<ND, LD> *to) { return new Link<ND, LD>(data, from, to); }
+    Edge<ND, LD> *addEdge(LD data, Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(data, from, to); }
     Node<ND, LD> *addNode() { return new Node<ND, LD>(*this); }
-    Link<ND, LD> *addLink(Node<ND, LD> *from, Node<ND, LD> *to) { return new Link<ND, LD>(from, to); }
+    Edge<ND, LD> *addEdge(Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(from, to); }
 
     template <typename CBack>
     bool forEachNode(CBack cb)
@@ -185,9 +185,9 @@ struct Graph
     }
 
     template <typename CBack>
-    bool forEachLink(CBack cb)
+    bool forEachEdge(CBack cb)
     {
-        for (Link<ND, LD> *L = firstLink; L; L = L->next)
+        for (Edge<ND, LD> *L = firstEdge; L; L = L->next)
         {
             if (!cb(L))
                 return false;

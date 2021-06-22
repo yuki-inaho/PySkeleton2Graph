@@ -6,7 +6,6 @@
 #include "enum.h"
 #include "fast_arithmetic.h"
 
-
 struct SkeletonPixel
 {
     int32_t x_pos, y_pos;
@@ -106,20 +105,17 @@ struct SkeletonPixel
 class EdgeSkeletonPixels
 {
 public:
-    float m_distance_between_two_pixels_;
-    float m_angle_between_two_pixels_;
-    EdgeSkeletonPixels(float distance, float direction) : m_distance_between_two_pixels_(distance), m_angle_between_two_pixels_(direction){};
-    EdgeSkeletonPixels(const SkeletonPixel &pixel_source, const SkeletonPixel &pixel_destination)
+    int32_t src;
+    int32_t dst;
+    EdgeSkeletonPixels(const SkeletonPixel *pixel_source, const SkeletonPixel *pixel_destination)
     {
-        m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
-        m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
-    };
-    EdgeSkeletonPixels(const SkeletonPixel* pixel_source, const SkeletonPixel* pixel_destination)
-    {
-        if(pixel_source == nullptr || pixel_destination == nullptr){
+        if (pixel_source == nullptr || pixel_destination == nullptr)
+        {
             std::cout << "(pixel_source == nullptr || pixel_destination == nullptr)" << std::endl;
-            exit(EXIT_FAILURE);            
+            exit(EXIT_FAILURE);
         }
+        src = pixel_source->hash;
+        dst = pixel_destination->hash;
         m_distance_between_two_pixels_ = calcPixelDistance(*pixel_source, *pixel_destination);
         m_angle_between_two_pixels_ = calcPixelDirection(*pixel_source, *pixel_destination);
     };
@@ -148,6 +144,9 @@ private:
         float angle = fast_atan2f_2(y_diff, x_diff);
         return angle;
     }
+
+    float m_distance_between_two_pixels_;
+    float m_angle_between_two_pixels_;
 };
 
 #endif // PYSKELETON2GRAPH_INCLUDE_PIXEL_H_

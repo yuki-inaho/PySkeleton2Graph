@@ -97,11 +97,10 @@ private:
           m_map_hash2pixel_ptr_initial_.at(hash),
           m_map_hash2pixel_ptr_initial_.at(hash_neighbor)
         );
-        m_graph_helper_ptr_initial_->addLinkWithHash(edge_attributes, hash, hash_neighbor);
+        m_graph_helper_ptr_initial_->addEdgeWithHash(edge_attributes, hash, hash_neighbor);
       }
     }
   }
-
 
   /*
     Calculate number of 8-nearest neighbor pixel on skeleton image;
