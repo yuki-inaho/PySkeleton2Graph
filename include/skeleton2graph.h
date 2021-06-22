@@ -11,6 +11,7 @@
 #include "enum.h"
 #include "graph.h"
 #include "graph_helper.h"
+#include "biconnected_component.h"
 
 typedef SkeletonPixel* SkeletonPixelPtr;
 typedef std::pair<Hash, SkeletonPixelPtr> Hash2PixelPtr;
