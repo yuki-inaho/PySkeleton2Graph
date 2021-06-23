@@ -136,6 +136,10 @@ public:
         m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
     }
 
+    float get_edge_length(){
+        return m_distance_between_two_pixels_;
+    }
+
 private:
     float calcPixelDistance(const SkeletonPixel &pixel_a, const SkeletonPixel &pixel_b)
     {

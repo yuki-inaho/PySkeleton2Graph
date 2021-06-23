@@ -84,8 +84,25 @@ public:
         return m_map_hash_to_node_ptr_.size();
     }
 
+    void validateNode(){
+        bool flag_skip_validation = false;
+        while(!flag_skip_validation){
+            flag_skip_validation = true;
+            for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+            {
+                // Update node information
+                int8_t connectivity = calcNodeConnectivity(node_ptr);
+                if(connectivity == 0){
+                    removeNode(node_ptr->data.getHash());
+                    flag_skip_validation = false;
+                }
+            }
+        }
+    }
+
     void refreshGraphInfo()
     {
+        validateNode();
         m_map_hash_to_node_ptr_.clear();
         m_map_node_ptr_to_hash_.clear();
         m_map_hash_pair_to_edge_ptr_.clear();
