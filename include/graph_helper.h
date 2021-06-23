@@ -10,9 +10,10 @@ class GraphHelper
 {
 public:
     Graph<ND, LD> &graph;
+
     GraphHelper(){};
     GraphHelper(Graph<ND, LD> &graph) : graph(graph){};
-    void addNodeWithHash(Hash hash, ND data)
+    void addNode(Hash hash, ND data)
     {
         Node<ND, LD> *node_ptr = graph.addNode(data);
         m_map_hash2node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
@@ -20,7 +21,18 @@ public:
         //std::cout << data.getHash() << " " << m_map_hash2node_ptr_.at(hash)->data.getHash() << std::endl;
     }
 
-    void addEdgeWithHash(LD edge_attributes, Hash hash_source, Hash hash_destination)
+    void removeNode(const Hash &hash)
+    {
+        Node<ND, LD> *node_ptr = m_map_hash2node_ptr_.at(hash);
+        m_map_hash2node_ptr_.erase(hash);
+        m_map_node_ptr2hash_.erase(node_ptr);
+        delete node_ptr;
+
+        // TODO:
+        // remove edge from m_map_hash_pair2edge_ptr_
+    }
+
+    void addEdge(LD edge_attributes, Hash hash_source, Hash hash_destination)
     {
         //std::cout << m_map_hash2node_ptr_.at(hash_source)->getHash() << " " << m_map_hash2node_ptr_.at(hash_destination) << std::endl;
         //std::cout << edge_attributes.src << " " << edge_attributes.dst << std::endl;
@@ -72,10 +84,48 @@ public:
         return m_map_hash2node_ptr_.size();
     }
 
+    void setupOutputGraph()
+    {
+        //Setup node position
+        std::unordered_map<Hash, int32_t> map_hash2index;
+
+        int32_t node_index = 0;
+        m_node_position_list_.clear();
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            int32_t x_pos, y_pos;
+            node_ptr->data.getPosition(x_pos, y_pos);
+            std::vector<int32_t> position{x_pos, y_pos};
+            m_node_position_list_.push_back(position);
+            map_hash2index.insert({node_ptr->data.getHash(), node_index});
+            node_index++;
+        }
+
+        m_edge_list_.clear();
+        for (Edge<ND, LD> *L = graph.firstEdge; L; L = L->next)
+        {
+            std::vector<int32_t> edge_info{map_hash2index[L->data.src], map_hash2index[L->data.dst]};
+            m_edge_list_.push_back(edge_info);
+        }
+    }
+
+    std::vector<std::vector<int32_t>> getNodePositions()
+    {
+        return m_node_position_list_;
+    }
+
+    std::vector<std::vector<int32_t>> getEdges()
+    {
+        return m_edge_list_;
+    }
+
 private:
     std::unordered_map<Hash, Node<ND, LD> *> m_map_hash2node_ptr_;
     std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr2hash_;
     std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair2edge_ptr_;
+
+    std::vector<std::vector<int32_t>> m_node_position_list_; // For output
+    std::vector<std::vector<int32_t>> m_edge_list_;          // For output
 };
 
 #endif //PYSKELETON2GRAPH_INCLUDE_GRAPH_HELPER_H_

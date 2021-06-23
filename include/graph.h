@@ -5,9 +5,12 @@
 #include <unordered_map>
 #include "typedef.h"
 
-template <typename ND, typename LD> struct Node;
-template <typename ND, typename LD> struct Edge;
-template <typename ND, typename LD> struct Graph;
+template <typename ND, typename LD>
+struct Node;
+template <typename ND, typename LD>
+struct Edge;
+template <typename ND, typename LD>
+struct Graph;
 
 template <typename ND, typename LD>
 struct Node
@@ -56,9 +59,11 @@ struct Node
     This function is Outgoing-ward neighbor node getter function,
     But if graph is undirected, this function returns all neighbor list.
     */
-    std::vector<Node<ND, LD> *> getNeighborNodes(){
+    std::vector<Node<ND, LD> *> getNeighborNodes()
+    {
         std::vector<Node<ND, LD> *> neighbor_node_list;
-        for (Edge<ND, LD> *x=firstOut; x; x=x->nextInFrom) {
+        for (Edge<ND, LD> *x = firstOut; x; x = x->nextInFrom)
+        {
             neighbor_node_list.push_back(x->to);
         }
         std::unique(neighbor_node_list.begin(), neighbor_node_list.end());

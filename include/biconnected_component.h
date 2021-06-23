@@ -5,7 +5,9 @@
 #include <stack>
 #include <vector>
 #include <algorithm>
+#include <iterator>
 #include "graph.h"
+#include "graph_helper.h"
 
 template <typename ND, typename LD>
 struct EdgeCompare
@@ -60,9 +62,8 @@ void dfs(const GraphHelper<ND, LD> *gh, Hash hash_v, Hash hash_parent,
 }
 
 template <typename ND, typename LD>
-void articulationPoint(const GraphHelper<ND, LD> *gh, std::vector<Hash> &art)
+void articulationPoint(const GraphHelper<ND, LD> *gh, std::vector<Hash> &art, std::vector<std::vector<Hash>> &hash_list_clique_to_compress)
 {
-
     std::vector<Edgeset<ND, LD>> bcomp;
     std::vector<Hash> hash_list_gh = gh->getHashList();
     std::unordered_map<Hash, int32_t> low, ord;
@@ -85,18 +86,31 @@ void articulationPoint(const GraphHelper<ND, LD> *gh, std::vector<Hash> &art)
         }
     }
 
-    /*
-    int16_t iter = 0;
-    for (Edgeset<ND, LD> edgeset : bcomp) {
-        std::cout << iter << " " << edgeset.size() << std::endl;
-        std::cout << "edges: ";
-        for (Edge<ND, LD>* edge_ptr : edgeset) {
-            std::cout << "(" << edge_ptr->data.src << "," << edge_ptr->data.dst << ") ";
+    std::vector<Hash> hash_list_union;
+    for (Edgeset<ND, LD> edge_list_clique : bcomp)
+    {
+        if (edge_list_clique.size() > 1)
+        {
+            std::vector<Hash> hash_list_clique;
+            for (Edge<ND, LD> *edge : edge_list_clique)
+            {
+                hash_list_clique.push_back(edge->data.src);
+                hash_list_clique.push_back(edge->data.dst);
+            }
+
+            // Remove duplicated node hash
+            std::sort(hash_list_clique.begin(), hash_list_clique.end());
+            hash_list_clique.erase(std::unique(hash_list_clique.begin(), hash_list_clique.end()), hash_list_clique.end());
+
+            std::vector<Hash> set_diff_result;
+            std::set_difference(
+                hash_list_clique.begin(), hash_list_clique.end(),
+                hash_list_union.begin(), hash_list_union.end(),
+                std::back_inserter(set_diff_result));
+
+            std::copy(set_diff_result.begin(), set_diff_result.end(), std::back_inserter(hash_list_union));
+            hash_list_clique_to_compress.push_back(set_diff_result);
         }
-        std::cout << std::endl;
-        iter++;
     }
-    std::cout << bcomp.size() << std::endl;
-    */
 }
 #endif
