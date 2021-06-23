@@ -125,10 +125,16 @@ public:
         }
         src = pixel_source->getHash();
         dst = pixel_destination->getHash();
-        //std::cout << src << " " << dst << std::endl;
         m_distance_between_two_pixels_ = calcPixelDistance(*pixel_source, *pixel_destination);
         m_angle_between_two_pixels_ = calcPixelDirection(*pixel_source, *pixel_destination);
     };
+
+    void resetPixelPair(const SkeletonPixel &pixel_source, const SkeletonPixel &pixel_destination){
+        src = pixel_source.getHash();
+        dst = pixel_destination.getHash();
+        m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
+        m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
+    }
 
 private:
     float calcPixelDistance(const SkeletonPixel &pixel_a, const SkeletonPixel &pixel_b)

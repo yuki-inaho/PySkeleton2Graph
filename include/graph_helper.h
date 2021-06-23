@@ -91,6 +91,10 @@ public:
         m_map_hash_pair_to_edge_ptr_.clear();
         for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
         {
+            // Update node information
+            node_ptr->data.setConnectivity(calcNodeConnectivity(node_ptr));
+            node_ptr->data.setPointType();
+
             Hash hash = node_ptr->data.getHash();
             m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
             m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
@@ -98,6 +102,8 @@ public:
 
         for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
         {
+            // Update node information
+            edge_ptr->data.resetPixelPair(edge_ptr->from->data, edge_ptr->to->data);
             m_map_hash_pair_to_edge_ptr_.insert({{edge_ptr->data.src, edge_ptr->data.dst}, edge_ptr});
         }
     }
@@ -138,8 +144,8 @@ public:
     }
 
 private:
-    int32_t calcNodeConnectivity(const Node<ND, LD>* node_ptr){
-        int32_t connectivity = 0;
+    int8_t calcNodeConnectivity(const Node<ND, LD>* node_ptr){
+        int8_t connectivity = 0;
         for (Edge<ND, LD> *x = node_ptr->firstOut; x; x = x->nextInFrom)
         {
             connectivity++;
