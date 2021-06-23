@@ -18,7 +18,6 @@ public:
         Node<ND, LD> *node_ptr = graph.addNode(data);
         m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
         m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
-        //std::cout << data.getHash() << " " << m_map_hash_to_node_ptr_.at(hash)->data.getHash() << std::endl;
     }
 
     /*
@@ -85,7 +84,8 @@ public:
         return m_map_hash_to_node_ptr_.size();
     }
 
-    void refreshGraphInfo(){
+    void refreshGraphInfo()
+    {
         m_map_hash_to_node_ptr_.clear();
         m_map_node_ptr_to_hash_.clear();
         m_map_hash_pair_to_edge_ptr_.clear();
@@ -138,6 +138,15 @@ public:
     }
 
 private:
+    int32_t calcNodeConnectivity(const Node<ND, LD>* node_ptr){
+        int32_t connectivity = 0;
+        for (Edge<ND, LD> *x = node_ptr->firstOut; x; x = x->nextInFrom)
+        {
+            connectivity++;
+        }
+        return connectivity;
+    }
+
     std::unordered_map<Hash, Node<ND, LD> *> m_map_hash_to_node_ptr_;
     std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr_to_hash_;
     std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair_to_edge_ptr_;

@@ -59,9 +59,19 @@ public:
     std::cout << "before:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
     for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
     {
-      for (int32_t i = 1; i < hash_list_clique.size(); i++)
-      { // first node will be remained
-        m_graph_helper_ptr_initial_->removeNode(hash_list_clique[i]);
+      // Search locally maximum connectivity node, and merge around node to it
+      int32_t max_connectivity = 0;
+      Hash hash_arg_max_connectivity = -1;
+      for (Hash hash_tmp: hash_list_clique){
+        int32_t connectivity_tmp = m_graph_helper_ptr_initial_->getNodePtr(hash_tmp)->data.getConnectivity();
+        if(max_connectivity < connectivity_tmp){
+          max_connectivity = connectivity_tmp;
+          hash_arg_max_connectivity = hash_tmp;
+        }
+      }
+      for (Hash hash_tmp: hash_list_clique){
+        if(hash_tmp != hash_arg_max_connectivity)
+          m_graph_helper_ptr_initial_->removeNode(hash_tmp);
       }
     }
     m_graph_helper_ptr_initial_->refreshGraphInfo();
