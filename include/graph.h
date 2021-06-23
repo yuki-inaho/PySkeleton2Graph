@@ -2,6 +2,7 @@
 #define PYSKELETON2GRAPH_INCLUDE_GRAPH_H_
 
 #include <memory>
+#include <unordered_map>
 #include "typedef.h"
 
 template <typename ND, typename LD> struct Node;
@@ -49,6 +50,19 @@ struct Node
             next->prev = prev;
         else
             graph.lastNode = prev;
+    }
+
+    /*
+    This function is Outgoing-ward neighbor node getter function,
+    But if graph is undirected, this function returns all neighbor list.
+    */
+    std::vector<Node<ND, LD> *> getNeighborNodes(){
+        std::vector<Node<ND, LD> *> neighbor_node_list;
+        for (Edge<ND, LD> *x=firstOut; x; x=x->nextInFrom) {
+            neighbor_node_list.push_back(x->to);
+        }
+        std::unique(neighbor_node_list.begin(), neighbor_node_list.end());
+        return neighbor_node_list;
     }
 
     template <typename CBack>

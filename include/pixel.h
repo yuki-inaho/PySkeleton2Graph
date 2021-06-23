@@ -31,7 +31,7 @@ struct SkeletonPixel
         this->hash = hash;
     }
 
-    Hash getHash()
+    Hash getHash() const
     {
         return this->hash;
     }
@@ -41,7 +41,7 @@ struct SkeletonPixel
         this->label = label;
     }
 
-    int32_t getLabel()
+    int32_t getLabel() const
     {
         return this->label;
     }
@@ -51,7 +51,7 @@ struct SkeletonPixel
         this->connectivity = connectivity;
     }
 
-    int8_t getConnectivity()
+    int8_t getConnectivity() const
     {
         return this->connectivity;
     }
@@ -86,7 +86,7 @@ struct SkeletonPixel
         }
     }
 
-    PointType getPointType()
+    PointType getPointType() const
     {
         return this->point_type;
     }
@@ -107,6 +107,15 @@ class EdgeSkeletonPixels
 public:
     int32_t src;
     int32_t dst;
+    EdgeSkeletonPixels(const SkeletonPixel &pixel_source, const SkeletonPixel &pixel_destination)
+    {
+        src = pixel_source.getHash();
+        dst = pixel_destination.getHash();
+        //std::cout << src << " " << dst << std::endl;
+        m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
+        m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
+    };
+
     EdgeSkeletonPixels(const SkeletonPixel *pixel_source, const SkeletonPixel *pixel_destination)
     {
         if (pixel_source == nullptr || pixel_destination == nullptr)
@@ -114,8 +123,9 @@ public:
             std::cout << "(pixel_source == nullptr || pixel_destination == nullptr)" << std::endl;
             exit(EXIT_FAILURE);
         }
-        src = pixel_source->hash;
-        dst = pixel_destination->hash;
+        src = pixel_source->getHash();
+        dst = pixel_destination->getHash();
+        //std::cout << src << " " << dst << std::endl;
         m_distance_between_two_pixels_ = calcPixelDistance(*pixel_source, *pixel_destination);
         m_angle_between_two_pixels_ = calcPixelDirection(*pixel_source, *pixel_destination);
     };

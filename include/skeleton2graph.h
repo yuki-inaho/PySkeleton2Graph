@@ -14,7 +14,9 @@
 #include "biconnected_component.h"
 
 typedef SkeletonPixel* SkeletonPixelPtr;
+typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
 typedef std::pair<Hash, SkeletonPixelPtr> Hash2PixelPtr;
+typedef std::unordered_map<Hash, SkeletonPixel> MapHash2Pixel;
 typedef std::unordered_map<Hash, SkeletonPixelPtr> MapHash2PixelPtr;
 typedef Graph<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraph;
 typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphHelper;
@@ -84,23 +86,44 @@ private:
 
         // Add node (skeleton pixel)
         m_graph_helper_ptr_initial_->addNodeWithHash(hash, pixel_uv);
-        m_map_hash2pixel_ptr_initial_.insert(Hash2PixelPtr{hash, &pixel_uv});
+        //std::cout << m_map_hash2pixel_ptr_initial_.at(hash)->getHash() << std::endl;
+        m_map_hash2pixel_initial_.insert(Hash2Pixel{hash, pixel_uv});
         m_map_hash2index_initial_.insert(Hash2Index{hash, node_count});
+        
         node_count++;
       }
     }
 
     for(auto kv: temp_map_pixel_hash_to_neighbor){
       Hash hash = kv.first;
+      
+      //std::cout << pixel_ptr->getHash() << std::endl;
       std::vector<Hash> hash_list_neighbors = kv.second;
       for(Hash hash_neighbor: hash_list_neighbors){
+        /*
+        SkeletonPixel pixel_ = m_map_hash2pixel_initial_.at(hash);
+        SkeletonPixel pixel_n = m_map_hash2pixel_initial_.at(hash_neighbor);
+        Hash test = m_graph_helper_ptr_initial_->getNodePtr(hash)->data.getHash();
+        Hash testn = m_graph_helper_ptr_initial_->getNodePtr(hash_neighbor)->data.getHash();
+        std::cout << hash << " " << hash_neighbor << " " << pixel_.getHash() << " " << pixel_n.getHash() << std::endl;
+        */;
+        //std::cout << hash << " " << hash_neighbor << " " << test << " " << testn << std::endl; <- OK
+
+        //SkeletonPixelPtr m_map_hash2pixel_ptr_initial_.at(hash);
+        //SkeletonPixelPtr m_map_hash2pixel_ptr_initial_.at(hash)
+        
         EdgeSkeletonPixels edge_attributes = EdgeSkeletonPixels(
-          m_map_hash2pixel_ptr_initial_.at(hash),
-          m_map_hash2pixel_ptr_initial_.at(hash_neighbor)
+          m_map_hash2pixel_initial_.at(hash),
+          m_map_hash2pixel_initial_.at(hash_neighbor)
         );
         m_graph_helper_ptr_initial_->addEdgeWithHash(edge_attributes, hash, hash_neighbor);
       }
     }
+
+    //coco
+    std::vector<Hash> hash_list_articular_node;
+    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_initial_->getHashList();
+    articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_initial_, hash_list_articular_node);
   }
 
   /*
@@ -130,7 +153,8 @@ private:
   int32_t m_image_width_, m_image_height_;
 
   std::vector<SkeletonPixel> m_vector_skeleton_pixels_;
-  MapHash2PixelPtr m_map_hash2pixel_ptr_initial_;
+  //MapHash2PixelPtr m_map_hash2pixel_ptr_initial_;
+  MapHash2Pixel m_map_hash2pixel_initial_;
   MapHash2Index m_map_hash2index_initial_;
   SkeletonGraph m_graph_initial_;
   SkeletonGraphHelper* m_graph_helper_ptr_initial_;
