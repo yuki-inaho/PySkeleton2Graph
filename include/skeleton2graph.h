@@ -43,6 +43,35 @@ public:
     initializeNodeList(frame);
   }
 
+  void Simplification()
+  {
+    /*
+    Step 1. Make junction points unique
+    */
+    std::vector<Hash> hash_list_articular_node;
+    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_initial_->getHashList();
+    std::vector<std::vector<Hash>> hash_list_clique_to_compress;
+
+    //TODO: Rename function
+    articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_initial_, hash_list_articular_node, hash_list_clique_to_compress);
+
+    //Remove redundant node
+    std::cout << "before:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
+    {
+      for (int32_t i = 1; i < hash_list_clique.size(); i++)
+      { // first node will be remained
+        m_graph_helper_ptr_initial_->removeNode(hash_list_clique[i]);
+      }
+    }
+    m_graph_helper_ptr_initial_->refreshGraphInfo();
+    std::cout << "after:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+
+    m_graph_helper_ptr_initial_->setupOutputGraph();
+    m_node_position_list_output_ = m_graph_helper_ptr_initial_->getNodePositions();
+    m_edge_list_output_ = m_graph_helper_ptr_initial_->getEdges();
+  }
+
   std::vector<std::vector<int32_t>> getNodePositions()
   {
     return m_node_position_list_output_;
@@ -116,25 +145,7 @@ private:
         m_graph_helper_ptr_initial_->addEdge(edge_attributes, hash, hash_neighbor);
       }
     }
-
-    std::vector<Hash> hash_list_articular_node;
-    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_initial_->getHashList();
-    std::vector<std::vector<Hash>> hash_list_clique_to_compress;
-
-    //TODO: Rename function
-    articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_initial_, hash_list_articular_node, hash_list_clique_to_compress);
-
-    //Remove redundant node
-    //TODO: COPY graph
-    std::cout << "before:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
-    for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
-    {
-      for (int32_t i = 1; i < hash_list_clique.size(); i++)
-      { // first node will be remained
-        m_graph_helper_ptr_initial_->removeNode(hash_list_clique[i]);
-      }
-    }
-    std::cout << "after:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    
     m_graph_helper_ptr_initial_->setupOutputGraph();
     m_node_position_list_output_ = m_graph_helper_ptr_initial_->getNodePositions();
     m_edge_list_output_ = m_graph_helper_ptr_initial_->getEdges();

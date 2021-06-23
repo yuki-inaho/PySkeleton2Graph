@@ -16,37 +16,38 @@ public:
     void addNode(Hash hash, ND data)
     {
         Node<ND, LD> *node_ptr = graph.addNode(data);
-        m_map_hash2node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
-        m_map_node_ptr2hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
-        //std::cout << data.getHash() << " " << m_map_hash2node_ptr_.at(hash)->data.getHash() << std::endl;
+        m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
+        m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
+        //std::cout << data.getHash() << " " << m_map_hash_to_node_ptr_.at(hash)->data.getHash() << std::endl;
     }
 
+    /*
+        Edge removal connected with removed nodes processes doesn't conduct on below function.
+        It is necessary to call "refreshGraphInfo()" after calling the function.
+    */
     void removeNode(const Hash &hash)
     {
-        Node<ND, LD> *node_ptr = m_map_hash2node_ptr_.at(hash);
-        m_map_hash2node_ptr_.erase(hash);
-        m_map_node_ptr2hash_.erase(node_ptr);
+        Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash);
+        m_map_hash_to_node_ptr_.erase(hash);
+        m_map_node_ptr_to_hash_.erase(node_ptr);
         delete node_ptr;
-
-        // TODO:
-        // remove edge from m_map_hash_pair2edge_ptr_
     }
 
     void addEdge(LD edge_attributes, Hash hash_source, Hash hash_destination)
     {
-        //std::cout << m_map_hash2node_ptr_.at(hash_source)->getHash() << " " << m_map_hash2node_ptr_.at(hash_destination) << std::endl;
+        //std::cout << m_map_hash_to_node_ptr_.at(hash_source)->getHash() << " " << m_map_hash_to_node_ptr_.at(hash_destination) << std::endl;
         //std::cout << edge_attributes.src << " " << edge_attributes.dst << std::endl;
         Edge<ND, LD> *edge_ptr = graph.addEdge(
             edge_attributes,
-            m_map_hash2node_ptr_.at(hash_source),
-            m_map_hash2node_ptr_.at(hash_destination));
-        m_map_hash_pair2edge_ptr_.insert({{hash_source, hash_destination}, edge_ptr});
+            m_map_hash_to_node_ptr_.at(hash_source),
+            m_map_hash_to_node_ptr_.at(hash_destination));
+        m_map_hash_pair_to_edge_ptr_.insert({{hash_source, hash_destination}, edge_ptr});
     }
 
     std::vector<Hash> getHashList() const
     {
         std::vector<Hash> hash_list;
-        for (auto kv : m_map_hash2node_ptr_)
+        for (auto kv : m_map_hash_to_node_ptr_)
         {
             hash_list.push_back(kv.first);
         }
@@ -55,33 +56,50 @@ public:
 
     Node<ND, LD> *getNodePtr(const Hash &hash) const
     {
-        return m_map_hash2node_ptr_.at(hash);
+        return m_map_hash_to_node_ptr_.at(hash);
     }
 
     Edge<ND, LD> *getEdgePtr(const Hash &hash_source, const Hash &hash_destination) const
     {
-        return m_map_hash_pair2edge_ptr_.at({hash_source, hash_destination});
+        return m_map_hash_pair_to_edge_ptr_.at({hash_source, hash_destination});
     }
 
     std::vector<Node<ND, LD> *> getNeighborNodesPtr(const Hash &hash) const
     {
-        return m_map_hash2node_ptr_.at(hash).getNeighborNodes();
+        return m_map_hash_to_node_ptr_.at(hash).getNeighborNodes();
     }
 
     std::vector<Hash> getNeighborHashList(const Hash &hash) const
     {
         std::vector<Hash> neighbor_hash_list;
-        std::vector<Node<ND, LD> *> neighbor_ptr_list = m_map_hash2node_ptr_.at(hash)->getNeighborNodes();
+        std::vector<Node<ND, LD> *> neighbor_ptr_list = m_map_hash_to_node_ptr_.at(hash)->getNeighborNodes();
         for (Node<ND, LD> *neighbor_ptr : neighbor_ptr_list)
         {
-            neighbor_hash_list.push_back(m_map_node_ptr2hash_.at(neighbor_ptr));
+            neighbor_hash_list.push_back(m_map_node_ptr_to_hash_.at(neighbor_ptr));
         }
         return neighbor_hash_list;
     }
 
     int32_t size()
     {
-        return m_map_hash2node_ptr_.size();
+        return m_map_hash_to_node_ptr_.size();
+    }
+
+    void refreshGraphInfo(){
+        m_map_hash_to_node_ptr_.clear();
+        m_map_node_ptr_to_hash_.clear();
+        m_map_hash_pair_to_edge_ptr_.clear();
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            Hash hash = node_ptr->data.getHash();
+            m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
+            m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
+        }
+
+        for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
+        {
+            m_map_hash_pair_to_edge_ptr_.insert({{edge_ptr->data.src, edge_ptr->data.dst}, edge_ptr});
+        }
     }
 
     void setupOutputGraph()
@@ -102,9 +120,9 @@ public:
         }
 
         m_edge_list_.clear();
-        for (Edge<ND, LD> *L = graph.firstEdge; L; L = L->next)
+        for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
         {
-            std::vector<int32_t> edge_info{map_hash2index[L->data.src], map_hash2index[L->data.dst]};
+            std::vector<int32_t> edge_info{map_hash2index[edge_ptr->data.src], map_hash2index[edge_ptr->data.dst]};
             m_edge_list_.push_back(edge_info);
         }
     }
@@ -120,9 +138,9 @@ public:
     }
 
 private:
-    std::unordered_map<Hash, Node<ND, LD> *> m_map_hash2node_ptr_;
-    std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr2hash_;
-    std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair2edge_ptr_;
+    std::unordered_map<Hash, Node<ND, LD> *> m_map_hash_to_node_ptr_;
+    std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr_to_hash_;
+    std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair_to_edge_ptr_;
 
     std::vector<std::vector<int32_t>> m_node_position_list_; // For output
     std::vector<std::vector<int32_t>> m_edge_list_;          // For output

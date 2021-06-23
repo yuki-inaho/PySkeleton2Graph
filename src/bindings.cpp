@@ -20,6 +20,7 @@ PYBIND11_MODULE(pys2g, m)
             py::init<const float &>(),
             py::arg("simplification_threshold"))
         .def("set_frame", &Skeleton2Graph::setFrame)
+        .def("simplify", &Skeleton2Graph::Simplification)
         .def("get_node_positions", &Skeleton2Graph::getNodePositions)
         .def("get_edges", &Skeleton2Graph::getEdges);
 }
