@@ -19,7 +19,7 @@ public:
     GraphConnectedComponent(const SkeletonGraphHelperPtr graph_helper_ptr) : m_graph_helper_ptr_(graph_helper_ptr){};
     void setup()
     {
-        setEndPoints();
+        setPointInformation();
         std::vector<Hash> hash_list = m_graph_helper_ptr_->getHashList();
         int node_count = 0;
         for (auto it = hash_list.begin(); it != hash_list.end(); ++it)
@@ -33,7 +33,7 @@ public:
     {
         int32_t n_node = m_graph_helper_ptr_->size();
         std::vector<bool> is_visited(n_node, false);
-        std::vector<bool> is_prune_target(n_node, false);
+        // TODO: reduce line
         for (Hash hash_end_point : m_hash_list_end_points_)
         {
             std::vector<Hash> connected_component_list;
@@ -46,6 +46,21 @@ public:
             else
             {
                 search_connected_component_directional(hash_end_point, -1, is_visited, connected_component_list, directional_threshold);
+            }
+            m_connected_component_list_.push_back(connected_component_list);
+        }
+        for (Hash hash_rest_point : m_hash_list_whole_points_)
+        {
+            std::vector<Hash> connected_component_list;
+            if (is_visited[hash2index(hash_rest_point)])
+                continue;
+            if (algorithm_type == ConnectedComponent::kSimple)
+            {
+                search_connected_component_simple(hash_rest_point, -1, is_visited, connected_component_list);
+            }
+            else
+            {
+                search_connected_component_directional(hash_rest_point, -1, is_visited, connected_component_list, directional_threshold);
             }
             m_connected_component_list_.push_back(connected_component_list);
         }
@@ -113,7 +128,6 @@ private:
                 return hash_neighbor != hash_parent;
             });
 
-        /*
         if (hash_list_next_node_candidate.size() == 0)
         {
             return;
@@ -121,27 +135,35 @@ private:
         else if (hash_list_next_node_candidate.size() == 1)
         {
             hash_next_node = hash_list_next_node_candidate[0];
+            if (!check_directional_condition(hash_parent, hash_v, hash_next_node, directional_threshold))
+                return;
+            search_connected_component_directional(hash_next_node, hash_v, is_visited, connected_component_list, directional_threshold);
         }
         else
         {
-            std::vector<float> edge_directional_difference_list;
-            for (Hash hash_candidate : hash_list_next_node_candidate)
+            if (hash_parent != -1)
             {
-                float edge_directional_difference = get_edge_directional_difference(hash_parent, hash_v, hash_candidate);
-                edge_directional_difference_list.push_back(edge_directional_difference);
+                std::vector<float> edge_directional_difference_list;
+                for (Hash hash_candidate : hash_list_next_node_candidate)
+                {
+                    float edge_directional_difference = get_edge_directional_difference(hash_parent, hash_v, hash_candidate);
+                    edge_directional_difference_list.push_back(edge_directional_difference);
+                }
+                std::vector<float>::iterator max_iter = std::max_element(edge_directional_difference_list.begin(), edge_directional_difference_list.end());
+                int32_t argmax_hash_index = std::distance(edge_directional_difference_list.begin(), max_iter);
+                hash_next_node = hash_list_next_node_candidate[argmax_hash_index];
+                if (!check_directional_condition(hash_parent, hash_v, hash_next_node, directional_threshold))
+                    return;
+                search_connected_component_directional(hash_next_node, hash_v, is_visited, connected_component_list, directional_threshold);
             }
-            std::vector<float>::iterator max_iter = std::max_element(edge_directional_difference_list.begin(), edge_directional_difference_list.end());
-            int32_t argmax_hash_index = std::distance(edge_directional_difference_list.begin(), max_iter);
-            std::cout << argmax_hash_index << std::endl;
-            hash_next_node = hash_list_next_node_candidate[argmax_hash_index];
+            else
+            {
+                for (Hash hash_next_node_ : hash_list_next_node_candidate)
+                    search_connected_component_directional(hash_next_node_, hash_v, is_visited, connected_component_list, directional_threshold);
+            }
         }
-
-        std::cout << hash_next_node << std::endl;
-        if (!check_directional_condition(hash_parent, hash_v, hash_next_node, directional_threshold))
-            return;
-        search_connected_component_directional(hash_next_node, hash_v, is_visited, connected_component_list, directional_threshold);
-        */
-
+        return;
+        /*
         for (Hash hash_n : neighbor_hash_list_v)
         {
             if (hash_n != hash_parent)
@@ -151,11 +173,13 @@ private:
                 search_connected_component_directional(hash_n, hash_v, is_visited, connected_component_list, directional_threshold);
             }
         }
+        */
     }
 
-    void setEndPoints()
+    void setPointInformation()
     {
         m_hash_list_end_points_.clear();
+        m_hash_list_whole_points_.clear();
         std::vector<Hash> hash_list_temp = m_graph_helper_ptr_->getHashList();
         std::copy_if(
             hash_list_temp.begin(), hash_list_temp.end(),
@@ -164,11 +188,15 @@ private:
             {
                 return m_graph_helper_ptr_->getNodePtr(hash)->data.getPointType() == PointType::kEndPoint;
             });
+        std::copy(
+            hash_list_temp.begin(), hash_list_temp.end(),
+            std::back_inserter(m_hash_list_whole_points_));
     }
 
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     SkeletonGraphHelperPtr m_graph_helper_ptr_;
     std::vector<Hash> m_hash_list_end_points_;
+    std::vector<Hash> m_hash_list_whole_points_;
     std::vector<std::vector<Hash>> m_connected_component_list_;
 };
 
