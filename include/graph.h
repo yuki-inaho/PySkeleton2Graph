@@ -187,7 +187,7 @@ struct Graph
 
     Graph()
         : firstNode(nullptr), lastNode(nullptr),
-          firstEdge(nullptr), lastEdge(nullptr)
+          firstEdge(nullptr), lastEdge(nullptr), m_num_nodes_(0), m_num_edges_(0)
     {
     }
 

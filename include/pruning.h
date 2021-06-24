@@ -77,7 +77,7 @@ private:
         {
             SkeletonGraphEdge *edge_ptr = m_graph_helper_ptr_->getEdgePtr(hash_v, hash_parent);
             PointType node_point_type = m_graph_helper_ptr_->getNodePtr(hash_v)->data.getPointType();
-            cumulative_distance += edge_ptr->data.get_edge_length();
+            cumulative_distance += edge_ptr->data.getEdgeLength();
 
             if (
                 cumulative_distance >= m_simplification_threshold_ ||

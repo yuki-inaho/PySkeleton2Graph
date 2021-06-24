@@ -129,15 +129,22 @@ public:
         m_angle_between_two_pixels_ = calcPixelDirection(*pixel_source, *pixel_destination);
     };
 
-    void resetPixelPair(const SkeletonPixel &pixel_source, const SkeletonPixel &pixel_destination){
+    void resetPixelPair(const SkeletonPixel &pixel_source, const SkeletonPixel &pixel_destination)
+    {
         src = pixel_source.getHash();
         dst = pixel_destination.getHash();
         m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
         m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
     }
 
-    float get_edge_length(){
+    float getEdgeLength()
+    {
         return m_distance_between_two_pixels_;
+    }
+
+    float getEdgeAngle()
+    {
+        return m_angle_between_two_pixels_;
     }
 
 private:
@@ -159,8 +166,17 @@ private:
         int32_t pixel_b_pos_x, pixel_b_pos_y;
         pixel_a.getPosition(pixel_a_pos_x, pixel_a_pos_y);
         pixel_b.getPosition(pixel_b_pos_x, pixel_b_pos_y);
-        float x_diff = float(pixel_b_pos_x - pixel_a_pos_x);
-        float y_diff = float(pixel_b_pos_y - pixel_a_pos_y);
+        float x_diff, y_diff;
+        if (pixel_b_pos_y > pixel_a_pos_y)
+        {
+            x_diff = float(pixel_b_pos_x - pixel_a_pos_x);
+            y_diff = float(pixel_b_pos_y - pixel_a_pos_y);
+        }
+        else
+        {
+            x_diff = float(pixel_a_pos_x - pixel_b_pos_x);
+            y_diff = float(pixel_a_pos_y - pixel_b_pos_y);
+        }
         float angle = fast_atan2f_2(y_diff, x_diff);
         return angle;
     }

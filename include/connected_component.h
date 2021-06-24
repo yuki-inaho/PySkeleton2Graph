@@ -16,7 +16,7 @@ class GraphConnectedComponent
 {
 public:
     GraphConnectedComponent(){};
-    GraphConnectedComponent(const SkeletonGraphHelperPtr graph_helper_ptr) : m_graph_helper_ptr_(graph_helper_ptr) {};
+    GraphConnectedComponent(const SkeletonGraphHelperPtr graph_helper_ptr) : m_graph_helper_ptr_(graph_helper_ptr){};
     void setup()
     {
         setEndPoints();
@@ -29,24 +29,27 @@ public:
         }
     }
 
-    void compute(ConnectedComponent algorithm_type=ConnectedComponent::kSimple)
+    void compute(const ConnectedComponent &algorithm_type = ConnectedComponent::kSimple, const float &directional_threshold = 50)
     {
         int32_t n_node = m_graph_helper_ptr_->size();
         std::vector<bool> is_visited(n_node, false);
         std::vector<bool> is_prune_target(n_node, false);
-
-        std::cout << "end:" << m_hash_list_end_points_.size() << std::endl;
         for (Hash hash_end_point : m_hash_list_end_points_)
         {
             std::vector<Hash> connected_component_list;
-            if (is_visited[hash2index(hash_end_point)]) continue;
-            if (algorithm_type==ConnectedComponent::kSimple){
+            if (is_visited[hash2index(hash_end_point)])
+                continue;
+            if (algorithm_type == ConnectedComponent::kSimple)
+            {
                 search_connected_component_simple(hash_end_point, -1, is_visited, connected_component_list);
+            }
+            else
+            {
+                search_connected_component_directional(hash_end_point, -1, is_visited, connected_component_list, directional_threshold);
             }
             m_connected_component_list_.push_back(connected_component_list);
         }
     }
-
 
     std::vector<std::vector<Hash>> getConnectedComponent()
     {
@@ -70,7 +73,35 @@ private:
         for (Hash hash_n : neighbor_hash_list_v)
         {
             if (hash_n != hash_parent)
-                search_connected_component(hash_n, hash_v, is_visited, connected_component_list);
+                search_connected_component_simple(hash_n, hash_v, is_visited, connected_component_list);
+        }
+    }
+
+    bool check_directional_condition(const Hash &hash_ancester, const Hash &hash_source, const Hash &hash_target, const float &directional_threshold)
+    {
+        if (hash_ancester == -1)
+            return true;
+        float edge_angle_from = m_graph_helper_ptr_->getEdgePtr(hash_ancester, hash_source)->data.getEdgeAngle();
+        float edge_angle_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeAngle();
+        float edge_length_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeLength();
+        return std::abs(edge_angle_to - edge_angle_from) / M_PI * 180.0 < directional_threshold;
+    }
+
+    void search_connected_component_directional(const Hash &hash_v, const Hash &hash_parent, std::vector<bool> &is_visited, std::vector<Hash> &connected_component_list, const float &directional_threshold)
+    {
+        if (is_visited[hash2index(hash_v)])
+            return;
+        is_visited[hash2index(hash_v)] = true;
+        connected_component_list.push_back(hash_v);
+        std::vector<Hash> neighbor_hash_list_v = m_graph_helper_ptr_->getNeighborHashList(hash_v);
+        for (Hash hash_n : neighbor_hash_list_v)
+        {
+            if (hash_n != hash_parent)
+            {
+                if (!check_directional_condition(hash_parent, hash_v, hash_n, directional_threshold))
+                    continue;
+                search_connected_component_directional(hash_n, hash_v, is_visited, connected_component_list, directional_threshold);
+            }
         }
     }
 

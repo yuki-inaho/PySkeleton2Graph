@@ -26,11 +26,16 @@ typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphHelper;
 class Skeleton2Graph
 {
 public:
-  Skeleton2Graph(const float &simplification_threshold) : m_simplification_threshold_(simplification_threshold)
+  Skeleton2Graph(const float &simplification_threshold, const float &directional_threshold) : m_simplification_threshold_(simplification_threshold), m_directional_threshold_(directional_threshold)
   {
     if (simplification_threshold < 1.415)
     {
-      std::cerr << "Please assign simplification_threshold > 1.415" << std::endl;
+      std::cerr << "Please assign simplification_threshold in the range of > 1.415" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    if ((0 > m_directional_threshold_) || (m_directional_threshold_ > 90))
+    {
+      std::cerr << "Please assign directional_threshold in the range of 0 <= directional_threshold < 90" << std::endl;
       exit(EXIT_FAILURE);
     }
   }
@@ -51,14 +56,14 @@ public:
     Step 1. Make junction points unique
     */
     std::vector<Hash> hash_list_articular_node;
-    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_initial_->getHashList();
+    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_->getHashList();
     std::vector<std::vector<Hash>> hash_list_clique_to_compress;
 
     /// TODO: Rename function
-    articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_initial_, hash_list_articular_node, hash_list_clique_to_compress);
+    articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_, hash_list_articular_node, hash_list_clique_to_compress);
 
     /// Remove redundant node
-    std::cout << "before:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    std::cout << "before:" << m_graph_helper_ptr_->size() << std::endl; //debug
     for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
     {
       /// Search locally maximum connectivity node, and merge around node to it
@@ -66,52 +71,72 @@ public:
       Hash hash_arg_max_connectivity = -1;
       for (Hash hash_tmp : hash_list_clique)
       {
-        int32_t connectivity_tmp = m_graph_helper_ptr_initial_->getNodePtr(hash_tmp)->data.getConnectivity();
+        int32_t connectivity_tmp = m_graph_helper_ptr_->getNodePtr(hash_tmp)->data.getConnectivity();
         if (max_connectivity < connectivity_tmp)
         {
           max_connectivity = connectivity_tmp;
           hash_arg_max_connectivity = hash_tmp;
         }
       }
-      m_graph_helper_ptr_initial_->compressNodeSet(hash_arg_max_connectivity, hash_list_clique);
+      m_graph_helper_ptr_->compressNodeSet(hash_arg_max_connectivity, hash_list_clique);
     }
-    m_graph_helper_ptr_initial_->refreshGraphInfo();
-    std::cout << "make junction points unique:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    m_graph_helper_ptr_->refreshGraphInfo();
+    m_graph_helper_ptr_->validateGraphInfo();
+    std::cout << "make junction points unique:" << m_graph_helper_ptr_->size() << std::endl; //debug
 
     /*
     Step 2. Bridge Link Pruning
     */
-    PruningHelper pruning = PruningHelper(m_simplification_threshold_, m_graph_helper_ptr_initial_);
+    PruningHelper pruning = PruningHelper(m_simplification_threshold_, m_graph_helper_ptr_);
     pruning.setup();
     pruning.searchPruneTarget();
     std::vector<int32_t> hash_list_pruning_target = pruning.getHashListForPruning();
     for (Hash hash_pruning_target : hash_list_pruning_target)
     {
-      m_graph_helper_ptr_initial_->removeNode(hash_pruning_target);
+      m_graph_helper_ptr_->removeNode(hash_pruning_target);
     }
-    m_graph_helper_ptr_initial_->refreshGraphInfo();
-    std::cout << "after pruning:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
-    m_graph_helper_ptr_initial_->validateGraphInfo();
+    m_graph_helper_ptr_->refreshGraphInfo();
+    m_graph_helper_ptr_->validateGraphInfo();
+
+    std::cout << "after pruning:" << m_graph_helper_ptr_->size() << std::endl; //debug
 
     /// Removing too small connected component cluster points
-    GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_initial_);
+    GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_);
+    cc.setup();
+    cc.compute();
+    std::cout << "pruning" << std::endl; //debug
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
       if (hash_list_cc.size() < 2)
       { // node size is too small
         for (Hash hash_cc_elem : hash_list_cc)
-          m_graph_helper_ptr_initial_->removeNode(hash_cc_elem);
-        m_graph_helper_ptr_initial_->refreshGraphInfo();
-        m_graph_helper_ptr_initial_->validateGraphInfo();
+          m_graph_helper_ptr_->removeNode(hash_cc_elem);
+        m_graph_helper_ptr_->refreshGraphInfo();
+        m_graph_helper_ptr_->validateGraphInfo();
       }
     }
-    std::cout << "final:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    std::cout << "final:" << m_graph_helper_ptr_->size() << std::endl; //debug
 
     /// Labelling with
-    m_graph_helper_ptr_initial_->setupOutputGraph();
-    m_node_position_list_output_ = m_graph_helper_ptr_initial_->getNodePositions();
-    m_edge_list_output_ = m_graph_helper_ptr_initial_->getEdges();
+    m_graph_helper_ptr_->setupOutputGraph();
+    m_node_position_list_output_ = m_graph_helper_ptr_->getNodePositions();
+    m_edge_list_output_ = m_graph_helper_ptr_->getEdges();
+  }
+
+  void computeDirectionalConnectedComponent()
+  {
+    GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_);
+    cc.setup();
+    cc.compute(ConnectedComponent::kDirectional, m_directional_threshold_);
+    std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
+    m_graph_helper_ptr_->setConnectedComponentLabels(hash_list_each_cc);
+    m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
+  }
+
+  std::vector<int32_t> getNodeLabels() const
+  {
+    return m_node_labels_output_;
   }
 
   std::vector<std::vector<int32_t>> getNodePositions()
@@ -139,9 +164,8 @@ private:
   void initializeNodeList(const SkeletonFrame &frame)
   {
     int32_t node_count = 0;
-
     std::unordered_map<Hash, std::vector<Hash>> temp_map_pixel_hash_to_neighbor;
-    m_graph_helper_ptr_initial_ = new SkeletonGraphHelper(m_graph_initial_);
+    m_graph_helper_ptr_ = new SkeletonGraphHelper(m_graph_initial_);
     for (int32_t v = 0; v < frame.image_height; v++)
     {
       for (int32_t u = 0; u < frame.image_width; u++)
@@ -166,11 +190,10 @@ private:
         pixel_uv.setPointType();
 
         // Add node (skeleton pixel)
-        m_graph_helper_ptr_initial_->addNode(hash, pixel_uv);
+        m_graph_helper_ptr_->addNode(hash, pixel_uv);
         //std::cout << m_map_hash2pixel_ptr_initial_.at(hash)->getHash() << std::endl;
         m_map_hash2pixel_initial_.insert(Hash2Pixel{hash, pixel_uv});
         m_map_hash2index_initial_.insert(Hash2Index{hash, node_count});
-
         node_count++;
       }
     }
@@ -184,13 +207,14 @@ private:
         EdgeSkeletonPixels edge_attributes = EdgeSkeletonPixels(
             m_map_hash2pixel_initial_.at(hash),
             m_map_hash2pixel_initial_.at(hash_neighbor));
-        m_graph_helper_ptr_initial_->addEdge(edge_attributes, hash, hash_neighbor);
+        m_graph_helper_ptr_->addEdge(edge_attributes, hash, hash_neighbor);
       }
     }
+    m_graph_helper_ptr_->validateGraphInfo();
 
-    m_graph_helper_ptr_initial_->setupOutputGraph();
-    m_node_position_list_output_ = m_graph_helper_ptr_initial_->getNodePositions();
-    m_edge_list_output_ = m_graph_helper_ptr_initial_->getEdges();
+    m_graph_helper_ptr_->setupOutputGraph();
+    m_node_position_list_output_ = m_graph_helper_ptr_->getNodePositions();
+    m_edge_list_output_ = m_graph_helper_ptr_->getEdges();
   }
 
   /*
@@ -224,10 +248,12 @@ private:
   MapHash2Pixel m_map_hash2pixel_initial_;
   MapHash2Index m_map_hash2index_initial_;
   SkeletonGraph m_graph_initial_;
-  SkeletonGraphHelper *m_graph_helper_ptr_initial_;
+  SkeletonGraphHelper *m_graph_helper_ptr_;
 
   float m_simplification_threshold_;
+  float m_directional_threshold_;
 
+  std::vector<int32_t> m_node_labels_output_;
   std::vector<std::vector<int32_t>> m_node_position_list_output_;
   std::vector<std::vector<int32_t>> m_edge_list_output_;
 };

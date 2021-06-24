@@ -242,7 +242,6 @@ public:
     {
         //Setup node position
         std::unordered_map<Hash, int32_t> map_hash2index;
-
         int32_t node_index = 0;
         m_node_position_list_.clear();
         for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
@@ -255,12 +254,25 @@ public:
             node_index++;
         }
 
+        // Reset Labels
+        if(m_node_label_list_.size()==0){
+            m_node_label_list_.clear();
+            m_node_label_list_.resize(m_node_position_list_.size());
+            std::fill(m_node_label_list_.begin(), m_node_label_list_.end(), 0);
+        }
+
+        // Reset Edge information
         m_edge_list_.clear();
         for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
         {
             std::vector<int32_t> edge_info{map_hash2index[edge_ptr->data.src], map_hash2index[edge_ptr->data.dst]};
             m_edge_list_.push_back(edge_info);
         }
+    }
+
+    std::vector<int32_t> getNodeLabels()
+    {
+        return m_node_label_list_;
     }
 
     std::vector<std::vector<int32_t>> getNodePositions()
@@ -271,6 +283,30 @@ public:
     std::vector<std::vector<int32_t>> getEdges()
     {
         return m_edge_list_;
+    }
+
+    void setConnectedComponentLabels(const std::vector<std::vector<Hash>>& hash_list_each_cc)
+    {
+        m_node_label_list_.clear();
+        std::unordered_map<Hash, int32_t> map_hash2index;
+        int32_t node_index = 0;
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            map_hash2index.insert({node_ptr->data.getHash(), node_index});
+            node_index++;
+        }
+        m_node_label_list_.resize(map_hash2index.size());
+
+        int32_t label_cc = 1;
+        for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
+        {
+            for (Hash hash_cc_elem : hash_list_cc)
+            {
+                m_node_label_list_[map_hash2index[hash_cc_elem]] = label_cc;
+                getNodePtr(hash_cc_elem)->data.setLabel(label_cc);
+            }
+            label_cc++;
+        }
     }
 
 private:
@@ -288,8 +324,10 @@ private:
     std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr_to_hash_;
     std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair_to_edge_ptr_;
 
-    std::vector<std::vector<int32_t>> m_node_position_list_; // For output
-    std::vector<std::vector<int32_t>> m_edge_list_;          // For output
+    // For output
+    std::vector<int32_t> m_node_label_list_;
+    std::vector<std::vector<int32_t>> m_node_position_list_;
+    std::vector<std::vector<int32_t>> m_edge_list_;
 };
 
 #endif //PYSKELETON2GRAPH_INCLUDE_GRAPH_HELPER_H_
