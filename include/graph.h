@@ -32,11 +32,13 @@ struct Node
         else
             graph.firstNode = this;
         graph.lastNode = this;
+        graph.m_num_nodes_++;
     }
 
     Node(Graph<ND, LD> &graph)
         : Node<ND, LD>(ND(), graph)
     {
+        graph.m_num_nodes_++;
     }
 
     ~Node()
@@ -53,6 +55,7 @@ struct Node
             next->prev = prev;
         else
             graph.lastNode = prev;
+        graph.m_num_nodes_--;
     }
 
     /*
@@ -99,6 +102,10 @@ struct Edge
     LD data;
     Node<ND, LD> *from, *to;
     Edge<ND, LD> *prev, *next, *prevInFrom, *nextInFrom, *prevInTo, *nextInTo;
+
+    /*
+    Assume from->graph == to->graph
+    */
     Edge(LD data, Node<ND, LD> *from, Node<ND, LD> *to)
         : data(std::move(data)),
           from(from), to(to),
@@ -125,11 +132,13 @@ struct Edge
         else
             to->firstIn = this;
         to->lastIn = this;
+        from->graph.m_num_edges_++;
     }
 
     Edge(Node<ND, LD> *from, Node<ND, LD> *to)
         : Edge<ND, LD>(LD(), from, to)
     {
+        from->graph.m_num_edges_++;
     }
 
     ~Edge()
@@ -158,6 +167,8 @@ struct Edge
             next->prev = prev;
         else
             from->graph.lastEdge = prev;
+
+        from->graph.m_num_edges_--;
     }
 
     Edge(const Edge<ND, LD> &) = delete;
@@ -168,6 +179,9 @@ struct Edge
 template <typename ND, typename LD>
 struct Graph
 {
+    int32_t m_num_nodes_;
+    int32_t m_num_edges_;
+
     Node<ND, LD> *firstNode, *lastNode;
     Edge<ND, LD> *firstEdge, *lastEdge;
 
@@ -191,6 +205,16 @@ struct Graph
     Edge<ND, LD> *addEdge(LD data, Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(data, from, to); }
     Node<ND, LD> *addNode() { return new Node<ND, LD>(*this); }
     Edge<ND, LD> *addEdge(Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(from, to); }
+
+    int32_t get_number_of_nodes() const
+    {
+        return m_num_nodes_;
+    }
+
+    int32_t get_number_of_edges() const
+    {
+        return m_num_edges_;
+    }
 
     template <typename CBack>
     bool forEachNode(CBack cb)

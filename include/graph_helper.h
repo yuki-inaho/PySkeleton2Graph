@@ -35,13 +35,20 @@ public:
             {
                 for (Hash hash_destination : hash_list_neighbor)
                 {
-                    if (hash_source == hash_destination)continue;
+                    if (hash_source == hash_destination)
+                        continue;
                     EdgeSkeletonPixels edge_attributes = EdgeSkeletonPixels(
                         m_map_hash_to_node_ptr_.at(hash_source)->data,
                         m_map_hash_to_node_ptr_.at(hash_destination)->data);
                     addEdge(edge_attributes, hash_source, hash_destination);
                 }
             }
+        }
+
+        for (Hash hash_neighbor : hash_list_neighbor)
+        {
+            removeEdge(hash, hash_neighbor);
+            removeEdge(hash_neighbor, hash);
         }
 
         Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash);
@@ -61,6 +68,12 @@ public:
         m_map_hash_pair_to_edge_ptr_.insert({{hash_source, hash_destination}, edge_ptr});
     }
 
+    void removeEdge(Hash hash_source, Hash hash_destination)
+    {
+        delete m_map_hash_pair_to_edge_ptr_.at({hash_source, hash_destination});
+        m_map_hash_pair_to_edge_ptr_.erase({hash_source, hash_destination});
+    }
+
     /*
     hash_node_set includes hash_core_node
     */
@@ -70,7 +83,6 @@ public:
         std::vector<Hash> hash_list_peripheral_node;
         for (Hash hash_node : hash_node_set)
         {
-
             std::vector<Hash> hash_list_neighbor = getNeighborHashList(hash_node);
             std::copy_if(hash_list_neighbor.begin(), hash_list_neighbor.end(),
                          std::back_inserter(hash_list_peripheral_node),
@@ -82,12 +94,19 @@ public:
 
         for (Hash hash_node : hash_node_set)
         {
-            if (hash_node == hash_core_node)
-                continue;
             Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash_node);
-            m_map_hash_to_node_ptr_.erase(hash_node);
-            m_map_node_ptr_to_hash_.erase(node_ptr);
-            delete node_ptr;
+            std::vector<Node<ND, LD> *> neighbor_node_ptr_list = getNeighborNodesPtr(hash_node);
+            for (Node<ND, LD> *neighbor_node_ptr : neighbor_node_ptr_list)
+            {
+                removeEdge(node_ptr->data.getHash(), neighbor_node_ptr->data.getHash());
+                removeEdge(neighbor_node_ptr->data.getHash(), node_ptr->data.getHash());
+            }
+            if (hash_node != hash_core_node)
+            {
+                m_map_hash_to_node_ptr_.erase(hash_node);
+                m_map_node_ptr_to_hash_.erase(node_ptr);
+                delete node_ptr;
+            }
         }
 
         for (Hash hash_peripheral_node : hash_list_peripheral_node)
@@ -126,7 +145,7 @@ public:
 
     std::vector<Node<ND, LD> *> getNeighborNodesPtr(const Hash &hash) const
     {
-        return m_map_hash_to_node_ptr_.at(hash).getNeighborNodes();
+        return m_map_hash_to_node_ptr_.at(hash)->getNeighborNodes();
     }
 
     std::vector<Hash> getNeighborHashList(const Hash &hash) const
@@ -186,6 +205,38 @@ public:
             // Update node information
             edge_ptr->data.resetPixelPair(edge_ptr->from->data, edge_ptr->to->data);
             m_map_hash_pair_to_edge_ptr_.insert({{edge_ptr->data.src, edge_ptr->data.dst}, edge_ptr});
+        }
+    }
+
+    void validateGraphInfo()
+    {
+        if (graph.m_num_nodes_ != m_map_node_ptr_to_hash_.size())
+        {
+            std::cerr << "graph.m_num_nodes_ != m_map_node_ptr_to_hash_.size()" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        if (graph.m_num_edges_ != m_map_hash_pair_to_edge_ptr_.size())
+        {
+            std::cerr << "graph.m_num_edges_ != m_map_hash_pair_to_edge_ptr_.size(): " << graph.m_num_edges_ << " " << m_map_hash_pair_to_edge_ptr_.size() << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            std::vector<Node<ND, LD> *> neighbor_ptr_list = node_ptr->getNeighborNodes();
+            for (Node<ND, LD> *neighbor_ptr : neighbor_ptr_list)
+            {
+                Hash hash_source = node_ptr->data.getHash();
+                Hash hash_destination = neighbor_ptr->data.getHash();
+                if (
+                    m_map_hash_pair_to_edge_ptr_.count({hash_source, hash_destination}) == 0 ||
+                    m_map_hash_pair_to_edge_ptr_.count({hash_destination, hash_source}) == 0)
+                {
+                    std::cerr << "Edge information is invalid: (source:" << hash_source << "), (target:" << hash_destination << ")" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
 
