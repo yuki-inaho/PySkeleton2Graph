@@ -58,6 +58,7 @@ public:
 
     /// Remove redundant node
     std::cout << "before:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
+    /*
     for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
     {
       /// Search locally maximum connectivity node, and merge around node to it
@@ -78,6 +79,23 @@ public:
           m_graph_helper_ptr_initial_->removeNode(hash_tmp);
       }
     }
+    */
+    for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
+    {
+      /// Search locally maximum connectivity node, and merge around node to it
+      int32_t max_connectivity = 0;
+      Hash hash_arg_max_connectivity = -1;
+      for (Hash hash_tmp : hash_list_clique)
+      {
+        int32_t connectivity_tmp = m_graph_helper_ptr_initial_->getNodePtr(hash_tmp)->data.getConnectivity();
+        if (max_connectivity < connectivity_tmp)
+        {
+          max_connectivity = connectivity_tmp;
+          hash_arg_max_connectivity = hash_tmp;
+        }
+      }
+      m_graph_helper_ptr_initial_->compressNodeSet(hash_arg_max_connectivity, hash_list_clique);
+    }
     m_graph_helper_ptr_initial_->refreshGraphInfo();
     std::cout << "make junction points unique:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
 
@@ -88,7 +106,8 @@ public:
     pruning.setup();
     pruning.searchPruneTarget();
     std::vector<int32_t> hash_list_pruning_target = pruning.getHashListForPruning();
-    for(Hash hash_pruning_target: hash_list_pruning_target){
+    for (Hash hash_pruning_target : hash_list_pruning_target)
+    {
       m_graph_helper_ptr_initial_->removeNode(hash_pruning_target);
     }
     m_graph_helper_ptr_initial_->refreshGraphInfo();

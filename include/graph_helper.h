@@ -43,6 +43,49 @@ public:
         m_map_hash_pair_to_edge_ptr_.insert({{hash_source, hash_destination}, edge_ptr});
     }
 
+    /*
+    hash_node_set includes hash_core_node
+    */
+    void compressNodeSet(const Hash &hash_core_node, const std::vector<Hash> &hash_node_set)
+    {
+        // Get peripheral node
+        std::vector<Hash> hash_list_peripheral_node;
+        for (Hash hash_node : hash_node_set)
+        {
+
+            std::vector<Hash> hash_list_neighbor = getNeighborHashList(hash_node);
+            std::copy_if(hash_list_neighbor.begin(), hash_list_neighbor.end(),
+                         std::back_inserter(hash_list_peripheral_node),
+                         [=](Hash hash)
+                         {
+                            return *std::find(hash_node_set.begin(), hash_node_set.end(), hash) != hash;
+                         });
+        }
+
+        for (Hash hash_node : hash_node_set)
+        {
+            if (hash_node == hash_core_node)
+                continue;
+            Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash_node);
+            m_map_hash_to_node_ptr_.erase(hash_node);
+            m_map_node_ptr_to_hash_.erase(node_ptr);
+            delete node_ptr;
+        }
+
+        for (Hash hash_peripheral_node : hash_list_peripheral_node)
+        {
+            EdgeSkeletonPixels edge_attributes_forward = EdgeSkeletonPixels(
+                m_map_hash_to_node_ptr_.at(hash_core_node)->data,
+                m_map_hash_to_node_ptr_.at(hash_peripheral_node)->data);
+            EdgeSkeletonPixels edge_attributes_backward = EdgeSkeletonPixels(
+                m_map_hash_to_node_ptr_.at(hash_peripheral_node)->data,
+                m_map_hash_to_node_ptr_.at(hash_core_node)->data);
+
+            addEdge(edge_attributes_forward, hash_core_node, hash_peripheral_node);
+            addEdge(edge_attributes_backward, hash_peripheral_node, hash_core_node);
+        }
+    }
+
     std::vector<Hash> getHashList() const
     {
         std::vector<Hash> hash_list;
@@ -84,15 +127,18 @@ public:
         return m_map_hash_to_node_ptr_.size();
     }
 
-    void validateNode(){
+    void validateNode()
+    {
         bool flag_skip_validation = false;
-        while(!flag_skip_validation){
+        while (!flag_skip_validation)
+        {
             flag_skip_validation = true;
             for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
             {
                 // Update node information
                 int8_t connectivity = calcNodeConnectivity(node_ptr);
-                if(connectivity == 0){
+                if (connectivity == 0)
+                {
                     removeNode(node_ptr->data.getHash());
                     flag_skip_validation = false;
                 }
@@ -161,7 +207,8 @@ public:
     }
 
 private:
-    int8_t calcNodeConnectivity(const Node<ND, LD>* node_ptr){
+    int8_t calcNodeConnectivity(const Node<ND, LD> *node_ptr)
+    {
         int8_t connectivity = 0;
         for (Edge<ND, LD> *x = node_ptr->firstOut; x; x = x->nextInFrom)
         {
