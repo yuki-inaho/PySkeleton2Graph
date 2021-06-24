@@ -23,9 +23,27 @@ public:
     /*
         Edge removal connected with removed nodes processes doesn't conduct on below function.
         It is necessary to call "refreshGraphInfo()" after calling the function.
+
+        Assume graph is undirectional
     */
     void removeNode(const Hash &hash)
     {
+        std::vector<Hash> hash_list_neighbor = getNeighborHashList(hash);
+        if (hash_list_neighbor.size() > 1)
+        {
+            for (Hash hash_source : hash_list_neighbor)
+            {
+                for (Hash hash_destination : hash_list_neighbor)
+                {
+                    if (hash_source == hash_destination)continue;
+                    EdgeSkeletonPixels edge_attributes = EdgeSkeletonPixels(
+                        m_map_hash_to_node_ptr_.at(hash_source)->data,
+                        m_map_hash_to_node_ptr_.at(hash_destination)->data);
+                    addEdge(edge_attributes, hash_source, hash_destination);
+                }
+            }
+        }
+
         Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash);
         m_map_hash_to_node_ptr_.erase(hash);
         m_map_node_ptr_to_hash_.erase(node_ptr);
@@ -58,7 +76,7 @@ public:
                          std::back_inserter(hash_list_peripheral_node),
                          [=](Hash hash)
                          {
-                            return *std::find(hash_node_set.begin(), hash_node_set.end(), hash) != hash;
+                             return *std::find(hash_node_set.begin(), hash_node_set.end(), hash) != hash;
                          });
         }
 
