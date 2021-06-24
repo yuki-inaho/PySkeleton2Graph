@@ -77,14 +77,22 @@ private:
         }
     }
 
+    /*
+        unit is degree
+    */
+    float get_edge_directional_difference(const Hash &hash_ancester, const Hash &hash_source, const Hash &hash_target)
+    {
+        float edge_angle_from = m_graph_helper_ptr_->getEdgePtr(hash_ancester, hash_source)->data.getEdgeAngle();
+        float edge_angle_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeAngle();
+        float edge_length_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeLength();
+        return std::abs(edge_angle_to - edge_angle_from) / M_PI * 180.0;
+    }
+
     bool check_directional_condition(const Hash &hash_ancester, const Hash &hash_source, const Hash &hash_target, const float &directional_threshold)
     {
         if (hash_ancester == -1)
             return true;
-        float edge_angle_from = m_graph_helper_ptr_->getEdgePtr(hash_ancester, hash_source)->data.getEdgeAngle();
-        float edge_angle_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeAngle();
-        float edge_length_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeLength();
-        return std::abs(edge_angle_to - edge_angle_from) / M_PI * 180.0 < directional_threshold;
+        return get_edge_directional_difference(hash_ancester, hash_source, hash_target) < directional_threshold;
     }
 
     void search_connected_component_directional(const Hash &hash_v, const Hash &hash_parent, std::vector<bool> &is_visited, std::vector<Hash> &connected_component_list, const float &directional_threshold)
@@ -94,6 +102,46 @@ private:
         is_visited[hash2index(hash_v)] = true;
         connected_component_list.push_back(hash_v);
         std::vector<Hash> neighbor_hash_list_v = m_graph_helper_ptr_->getNeighborHashList(hash_v);
+
+        Hash hash_next_node;
+        std::vector<Hash> hash_list_next_node_candidate;
+        std::copy_if(
+            neighbor_hash_list_v.begin(), neighbor_hash_list_v.end(),
+            std::back_inserter(hash_list_next_node_candidate),
+            [&](Hash hash_neighbor)
+            {
+                return hash_neighbor != hash_parent;
+            });
+
+        /*
+        if (hash_list_next_node_candidate.size() == 0)
+        {
+            return;
+        }
+        else if (hash_list_next_node_candidate.size() == 1)
+        {
+            hash_next_node = hash_list_next_node_candidate[0];
+        }
+        else
+        {
+            std::vector<float> edge_directional_difference_list;
+            for (Hash hash_candidate : hash_list_next_node_candidate)
+            {
+                float edge_directional_difference = get_edge_directional_difference(hash_parent, hash_v, hash_candidate);
+                edge_directional_difference_list.push_back(edge_directional_difference);
+            }
+            std::vector<float>::iterator max_iter = std::max_element(edge_directional_difference_list.begin(), edge_directional_difference_list.end());
+            int32_t argmax_hash_index = std::distance(edge_directional_difference_list.begin(), max_iter);
+            std::cout << argmax_hash_index << std::endl;
+            hash_next_node = hash_list_next_node_candidate[argmax_hash_index];
+        }
+
+        std::cout << hash_next_node << std::endl;
+        if (!check_directional_condition(hash_parent, hash_v, hash_next_node, directional_threshold))
+            return;
+        search_connected_component_directional(hash_next_node, hash_v, is_visited, connected_component_list, directional_threshold);
+        */
+
         for (Hash hash_n : neighbor_hash_list_v)
         {
             if (hash_n != hash_parent)

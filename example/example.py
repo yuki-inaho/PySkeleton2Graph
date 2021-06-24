@@ -58,7 +58,17 @@ print(end - start)
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
 
-# show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
+#show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
+"""
+show_image(
+    draw_graph(
+        cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
+        node_simplified,
+        edge_simplified
+    ),
+    scale=3.0,
+)
+"""
 
 show_image(
     draw_graph(
@@ -70,3 +80,4 @@ show_image(
     ),
     scale=3.0,
 )
+
