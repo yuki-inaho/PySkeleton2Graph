@@ -59,8 +59,6 @@ public:
 
     void addEdge(LD edge_attributes, Hash hash_source, Hash hash_destination)
     {
-        //std::cout << m_map_hash_to_node_ptr_.at(hash_source)->getHash() << " " << m_map_hash_to_node_ptr_.at(hash_destination) << std::endl;
-        //std::cout << edge_attributes.src << " " << edge_attributes.dst << std::endl;
         Edge<ND, LD> *edge_ptr = graph.addEdge(
             edge_attributes,
             m_map_hash_to_node_ptr_.at(hash_source),
