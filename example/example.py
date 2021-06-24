@@ -7,15 +7,30 @@ from pys2g import SkeletonFrame, Skeleton2Graph
 SCRIPT_DIR = str(Path().parent)
 
 
-def draw_graph(image, points, edges, circle_diameter=2, edge_bold=1):
+def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1):
     assert (len(image.shape) == 3) and (image.shape[-1] == 3)
-    draw_frame = image.copy()
-    for point in points:
-        cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
-    for edge in edges:
-        p_from = points[edge[0]]
-        p_to = points[edge[1]]
-        cv2.line(draw_frame, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (255, 0, 0), edge_bold)
+    if label is None:
+        draw_frame = image.copy()
+        for point in points:
+            cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
+        for edge in edges:
+            p_from = points[edge[0]]
+            p_to = points[edge[1]]
+            cv2.line(draw_frame, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (255, 0, 0), edge_bold)
+    else:
+        draw_frame = image.copy()
+        label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
+        for i, point in enumerate(points):
+            cv2.circle(label_img_temp, (point[0], point[1]), circle_diameter, (label[i]), -1)
+        for i, edge in enumerate(edges):
+            p_from = points[edge[0]]
+            p_to = points[edge[1]]
+            cv2.line(label_img_temp, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (label[edge[0]]), edge_bold)
+        label_img_normalized = (label_img_temp - label_img_temp.min()) / (label_img_temp.max() - label_img_temp.min())
+        label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
+        label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
+        draw_frame[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
+
     return draw_frame
 
 
@@ -35,13 +50,23 @@ node_init = s2g.get_node_positions()
 edge_init = s2g.get_edges()
 s2g.simplify()
 s2g.compute_directional_connected_component()
+node_labels_simplified = s2g.get_node_labels()
 node_simplified = s2g.get_node_positions()
 edge_simplified = s2g.get_edges()
 end = time.time()
 print(end - start)
-
-node_labels_simplified = s2g.get_node_labels()
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
-#show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
-show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_simplified, edge_simplified), scale=3.0)
+
+# show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
+
+show_image(
+    draw_graph(
+        cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
+        node_simplified,
+        edge_simplified,
+        node_labels_simplified,
+        edge_bold=2,
+    ),
+    scale=3.0,
+)
