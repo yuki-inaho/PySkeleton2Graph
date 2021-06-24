@@ -10,13 +10,7 @@ enum struct PointType
 
 enum struct ConnectedComponent
 {
-    kOnlyBridge,
-    kDirectional
-};
-
-enum struct NeighborGetterTypeJP //JP: junction point
-{
-    kFromTo,
+    kSimple,
     kDirectional
 };
 

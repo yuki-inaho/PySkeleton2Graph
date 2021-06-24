@@ -17,7 +17,6 @@ class GraphConnectedComponent
 public:
     GraphConnectedComponent(){};
     GraphConnectedComponent(const SkeletonGraphHelperPtr graph_helper_ptr) : m_graph_helper_ptr_(graph_helper_ptr) {};
-
     void setup()
     {
         setEndPoints();
@@ -30,7 +29,7 @@ public:
         }
     }
 
-    void compute()
+    void compute(ConnectedComponent algorithm_type=ConnectedComponent::kSimple)
     {
         int32_t n_node = m_graph_helper_ptr_->size();
         std::vector<bool> is_visited(n_node, false);
@@ -41,7 +40,9 @@ public:
         {
             std::vector<Hash> connected_component_list;
             if (is_visited[hash2index(hash_end_point)]) continue;
-            search_connected_component(hash_end_point, -1, is_visited, connected_component_list);
+            if (algorithm_type==ConnectedComponent::kSimple){
+                search_connected_component_simple(hash_end_point, -1, is_visited, connected_component_list);
+            }
             m_connected_component_list_.push_back(connected_component_list);
         }
     }
@@ -58,7 +59,7 @@ private:
         return m_map_hash2index_.at(hash);
     }
 
-    void search_connected_component(const Hash &hash_v, const Hash &hash_parent, std::vector<bool> &is_visited, std::vector<Hash> &connected_component_list)
+    void search_connected_component_simple(const Hash &hash_v, const Hash &hash_parent, std::vector<bool> &is_visited, std::vector<Hash> &connected_component_list)
     {
         if (is_visited[hash2index(hash_v)])
             return;

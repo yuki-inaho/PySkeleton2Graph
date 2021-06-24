@@ -93,6 +93,7 @@ public:
     std::cout << "after pruning:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
     m_graph_helper_ptr_initial_->validateGraphInfo();
 
+    /// Removing too small connected component cluster points
     GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_initial_);
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
