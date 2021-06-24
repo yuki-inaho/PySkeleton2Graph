@@ -13,6 +13,7 @@
 #include "graph_helper.h"
 #include "biconnected_component.h"
 #include "pruning.h"
+#include "connected_component.h"
 
 typedef SkeletonPixel *SkeletonPixelPtr;
 typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
@@ -91,6 +92,20 @@ public:
     m_graph_helper_ptr_initial_->refreshGraphInfo();
     std::cout << "after pruning:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
     m_graph_helper_ptr_initial_->validateGraphInfo();
+
+    GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_initial_);
+    std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
+    for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
+    {
+      if (hash_list_cc.size() < 2)
+      { // node size is too small
+        for (Hash hash_cc_elem : hash_list_cc)
+          m_graph_helper_ptr_initial_->removeNode(hash_cc_elem);
+        m_graph_helper_ptr_initial_->refreshGraphInfo();
+        m_graph_helper_ptr_initial_->validateGraphInfo();
+      }
+    }
+    std::cout << "final:" << m_graph_helper_ptr_initial_->size() << std::endl; //debug
 
     /// Labelling with
     m_graph_helper_ptr_initial_->setupOutputGraph();
