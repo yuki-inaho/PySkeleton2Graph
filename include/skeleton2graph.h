@@ -152,11 +152,35 @@ public:
 
   void mergeClusters()
   {
+    int32_t n_clusters = m_linear_cluster_list_.size();
     for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
     {
       m_linear_cluster_.fitLine();
     }
     ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_);
+    for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
+    {
+      merge_helper.addNode(m_linear_cluster_);
+    }
+
+    /// TODO: implement more efficiently, if not actually feasible
+    for (int32_t i = 0; i < n_clusters; i++)
+    {
+      for (int32_t j = 0; j < n_clusters; j++)
+      {
+        if (j > i)
+        {
+          /// cluster index -> cluster label
+          int32_t label_i = m_linear_cluster_list_[i].label();
+          int32_t label_j = m_linear_cluster_list_[j].label();
+          if (m_linear_cluster_list_[i].isClusterNeighbor(&m_linear_cluster_list_[j]))
+          {
+            merge_helper.addEdge(label_i, label_j);
+            merge_helper.addEdge(label_j, label_i);
+          }
+        }
+      }
+    }
   }
 
   std::vector<int32_t> getNodeLabels() const

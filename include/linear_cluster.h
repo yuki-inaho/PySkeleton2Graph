@@ -17,7 +17,6 @@ typedef Edge<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphEdge;
 typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> *SkeletonGraphHelperPtr;
 typedef Eigen::Matrix<float, 3, Eigen::Dynamic> Matrix2DPoints;
 
-
 // TODO: rename "m_node_list_"
 struct LineCoeff
 {
@@ -70,7 +69,7 @@ struct LineCoeff
 class LinearCluster
 {
 public:
-    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold){};
+    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold), m_has_junction_point_(false), m_has_end_point_(false){};
     ~LinearCluster(){};
 
     int32_t label() const
@@ -83,8 +82,10 @@ public:
         return m_node_list_.size();
     }
 
-    std::shared_ptr<SkeletonGraphNode> accessNodeByIndex(int32_t index){
-        if((index < 0) || (index >= size())){
+    std::shared_ptr<SkeletonGraphNode> accessNodeByIndex(int32_t index)
+    {
+        if ((index < 0) || (index >= size()))
+        {
             std::cerr << "Invalid cluster point access detected" << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -94,6 +95,11 @@ public:
     void addNodePtr(SkeletonGraphNode *node_ptr)
     {
         std::shared_ptr<SkeletonGraphNode> node_shared_ptr(node_ptr);
+        if(node_ptr->data.getPointType() == PointType::kEndPoint){
+            m_has_end_point_ = true;
+        }else if(node_ptr->data.getPointType() == PointType::kJunctionPoint){
+            m_has_junction_point_ = true;
+        }
         m_node_list_.push_back(node_shared_ptr);
     }
 
@@ -177,19 +183,43 @@ public:
         return n_x * diff_x + n_y * diff_y;
     }
 
-    bool isNeighborCluster(const LinearCluster& cluster_compare){
-        for(std::shared_ptr<SkeletonGraphNode> node_ptr_this: m_node_list_){
-            /*
-            for(std::shared_ptr<SkeletonGraphNode> node_compare : m_node_list_){
-                
-
+    // FORME: use reference?
+    bool isClusterNeighbor(LinearCluster* cluster_compare)
+    {
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr_this : m_node_list_)
+        {
+            int32_t p_x_this, p_y_this;
+            node_ptr_this->data.getPosition(p_x_this, p_y_this);
+            if (cluster_compare->isPointNeighbor(p_x_this, p_y_this))
+            {
+                return true;
             }
-            */
         }
-        return true;
+        return false;
+    }
+
+    bool isPointNeighbor(const int32_t& p_x, const int32_t& p_y)
+    {
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr_this : m_node_list_)
+        {
+            int32_t p_x_this, p_y_this;
+            node_ptr_this->data.getPosition(p_x_this, p_y_this);
+            if (arePointsMutual(p_x_this, p_y_this, p_x, p_y))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
 private:
+    bool arePointsMutual(float p1_x, float p1_y, float p2_x, float p2_y)
+    {
+        float diff_x = p2_x - p1_x;
+        float diff_y = p2_y - p1_y;
+        return std::sqrt(diff_x * diff_x + diff_y * diff_y) <= m_cluster_proximity_threshold_;
+    }
+
     void fitLineBySVD(LineCoeff &line_coeff)
     {
         Matrix2DPoints mat_points;
@@ -208,6 +238,8 @@ private:
         line_coeff.set(u(0, 2), u(1, 2), u(2, 2)); // get eigen vector corresponded with the smallast eigen value
     }
 
+    bool m_has_end_point_;
+    bool m_has_junction_point_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
     std::vector<std::shared_ptr<SkeletonGraphNode>> m_node_list_;

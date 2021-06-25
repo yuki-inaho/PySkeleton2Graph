@@ -13,10 +13,12 @@ typedef Node<LinearCluster, float> ClusterGraphNode;
 typedef Edge<LinearCluster, float> ClusterGraphEdge;
 typedef Graph<LinearCluster, float> ClusterGraph;
 
+
+/// TODO: use smart pointers instead of raw pointers
 class ClusterMergeHelper
 {
 public:
-    ClusterMergeHelper(SkeletonGraphHelperPtr graph_helper, const std::vector<LinearCluster> &linear_cluster_list)
+    ClusterMergeHelper(SkeletonGraphHelperPtr graph_helper, const std::vector<LinearCluster> &linear_cluster_list): n_nodes(0), n_edges(0)
     {
         int32_t n_cluster = linear_cluster_list.size();
         for(int32_t i=0; i< n_cluster; i++){
@@ -28,11 +30,13 @@ public:
         }
     }
 
-    void addNode(LinearCluster linear_cluster, int32_t cluster_label)
+    void addNode(LinearCluster linear_cluster)
     {
         ClusterGraphNode *node_ptr = graph.addNode(linear_cluster);
+        int32_t cluster_label = linear_cluster.label();
         m_map_label_to_node_ptr_.insert(std::pair<Hash, ClusterGraphNode *>(cluster_label, node_ptr));
         m_map_node_ptr_to_label_.insert(std::pair<ClusterGraphNode *, Hash>(node_ptr, cluster_label));
+        n_nodes++;
     }
 
     void addEdge(int32_t label_cluster_source, int32_t label_cluster_target)
@@ -44,7 +48,12 @@ public:
             m_map_label_to_node_ptr_.at(label_cluster_source),
             m_map_label_to_node_ptr_.at(label_cluster_target));
         m_map_hash_pair_to_edge_ptr_.insert({{label_cluster_source, label_cluster_target}, edge_ptr});
+        n_edges++;
     }
+
+    void merge(){
+        
+    }    
 
 private:
     std::unordered_map<int32_t, std::shared_ptr<LinearCluster>> m_map_label_to_cluster_ptr_;
@@ -54,6 +63,7 @@ private:
     std::unordered_map<ClusterGraphNode *, int32_t> m_map_node_ptr_to_label_;
     std::map<std::pair<Hash, Hash>, ClusterGraphEdge *> m_map_hash_pair_to_edge_ptr_;
 
+    int32_t n_nodes, n_edges;
     ClusterGraph graph;
 };
 
