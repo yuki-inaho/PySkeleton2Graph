@@ -43,13 +43,14 @@ def show_image(image, title="image", scale=1.0):
 
 skeleton = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 frame = SkeletonFrame(skeleton)
-s2g = Skeleton2Graph(simplification_threshold=10, directional_threshold=10)
+s2g = Skeleton2Graph(simplification_threshold=5, directional_threshold=10)
 start = time.time()
 s2g.set_frame(frame)
 node_init = s2g.get_node_positions()
 edge_init = s2g.get_edges()
 s2g.simplify()
 s2g.compute_directional_connected_component()
+s2g.merge_clusters()
 node_labels_simplified = s2g.get_node_labels()
 node_simplified = s2g.get_node_positions()
 edge_simplified = s2g.get_edges()
@@ -69,6 +70,7 @@ show_image(
     scale=3.0,
 )
 """
+
 """
 show_image(
     draw_graph(

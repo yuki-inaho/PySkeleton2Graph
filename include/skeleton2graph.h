@@ -15,6 +15,7 @@
 #include "pruning.h"
 #include "connected_component.h"
 #include "linear_cluster.h"
+#include "merge.h"
 
 typedef SkeletonPixel *SkeletonPixelPtr;
 typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
@@ -39,6 +40,8 @@ public:
       std::cerr << "Please assign directional_threshold in the range of 0 <= directional_threshold < 90" << std::endl;
       exit(EXIT_FAILURE);
     }
+
+    m_cluster_proximity_threshold_ = m_simplification_threshold_ * 1.2;
   }
 
   ~Skeleton2Graph() {}
@@ -128,16 +131,18 @@ public:
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     m_graph_helper_ptr_->setConnectedComponentLabels(hash_list_each_cc);
     m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
-  
+
     int32_t n_cluster = hash_list_each_cc.size();
 
     // Setup for cluster merging
-    
+
     int32_t cluster_index = 1;
     m_linear_cluster_list_.clear();
-    for(std::vector<Hash> hash_list_cc: hash_list_each_cc){
-      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_);
-      for(Hash hash: hash_list_cc){
+    for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
+    {
+      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_, m_cluster_proximity_threshold_);
+      for (Hash hash : hash_list_cc)
+      {
         linear_cluster.addNodePtr(m_graph_helper_ptr_->getNodePtr(hash));
       }
       m_linear_cluster_list_.push_back(linear_cluster);
@@ -145,14 +150,14 @@ public:
     }
   }
 
-  void mergeCluster()
+  void mergeClusters()
   {
-    for(LinearCluster m_linear_cluster_: m_linear_cluster_list_){
+    for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
+    {
       m_linear_cluster_.fitLine();
-    }    
-
+    }
+    ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_);
   }
-
 
   std::vector<int32_t> getNodeLabels() const
   {
@@ -263,12 +268,12 @@ private:
   int32_t m_image_width_, m_image_height_;
 
   std::vector<SkeletonPixel> m_vector_skeleton_pixels_;
-  //MapHash2PixelPtr m_map_hash2pixel_ptr_initial_;
   MapHash2Pixel m_map_hash2pixel_initial_;
   MapHash2Index m_map_hash2index_initial_;
   SkeletonGraph m_graph_initial_;
   SkeletonGraphHelper *m_graph_helper_ptr_;
 
+  float m_cluster_proximity_threshold_;
   float m_simplification_threshold_;
   float m_directional_threshold_;
 
