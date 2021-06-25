@@ -28,7 +28,7 @@ typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphHelper;
 class Skeleton2Graph
 {
 public:
-  Skeleton2Graph(const float &simplification_threshold, const float &directional_threshold) : m_simplification_threshold_(simplification_threshold), m_directional_threshold_(directional_threshold)
+  Skeleton2Graph(const float &simplification_threshold, const float &directional_threshold, const float &angular_threshold_cluster_merge) : m_simplification_threshold_(simplification_threshold), m_directional_threshold_(directional_threshold), m_angular_threshold_cluster_merge_(angular_threshold_cluster_merge)
   {
     if (simplification_threshold < 1.415)
     {
@@ -157,13 +157,15 @@ public:
     {
       m_linear_cluster_.fitLine();
     }
-    ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_);
+
+    float m_degree_threshold_ = 30;
+    ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_, m_angular_threshold_cluster_merge_);
     for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
     {
       merge_helper.addNode(m_linear_cluster_);
     }
 
-    /// TODO: implement more efficiently, if not actually feasible
+    /// TODO: reimplement more efficiently, if not actually feasible
     for (int32_t i = 0; i < n_clusters; i++)
     {
       for (int32_t j = 0; j < n_clusters; j++)
@@ -297,6 +299,7 @@ private:
   SkeletonGraph m_graph_initial_;
   SkeletonGraphHelper *m_graph_helper_ptr_;
 
+  float m_angular_threshold_cluster_merge_;
   float m_cluster_proximity_threshold_;
   float m_simplification_threshold_;
   float m_directional_threshold_;

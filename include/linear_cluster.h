@@ -69,7 +69,7 @@ struct LineCoeff
 class LinearCluster
 {
 public:
-    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold), m_has_junction_point_(false), m_has_end_point_(false){};
+    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
     ~LinearCluster(){};
 
     int32_t label() const
@@ -80,6 +80,11 @@ public:
     int32_t size() const
     {
         return m_node_list_.size();
+    }
+
+    LinearClusterType type() const
+    {
+        return m_cluster_type_;
     }
 
     std::shared_ptr<SkeletonGraphNode> accessNodeByIndex(int32_t index)
@@ -95,13 +100,15 @@ public:
     void addNodePtr(SkeletonGraphNode *node_ptr)
     {
         std::shared_ptr<SkeletonGraphNode> node_shared_ptr(node_ptr);
+        /// FORME: confirm in the case of kEndPointCluster + kJunctionPointCluster
         if(node_ptr->data.getPointType() == PointType::kEndPoint){
-            m_has_end_point_ = true;
+            m_cluster_type_ = LinearClusterType::kEndPointCluster;
         }else if(node_ptr->data.getPointType() == PointType::kJunctionPoint){
-            m_has_junction_point_ = true;
+            m_cluster_type_ = LinearClusterType::kJunctionPointCluster;
         }
         m_node_list_.push_back(node_shared_ptr);
     }
+
 
     void fitLine()
     {
@@ -238,8 +245,7 @@ private:
         line_coeff.set(u(0, 2), u(1, 2), u(2, 2)); // get eigen vector corresponded with the smallast eigen value
     }
 
-    bool m_has_end_point_;
-    bool m_has_junction_point_;
+    LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
     std::vector<std::shared_ptr<SkeletonGraphNode>> m_node_list_;
