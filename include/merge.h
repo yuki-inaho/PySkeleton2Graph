@@ -41,7 +41,6 @@ public:
 
     void addEdge(int32_t label_cluster_source, int32_t label_cluster_target)
     {
-        //FIXME
         ClusterGraphEdge *edge_ptr = graph.addEdge(
             m_map_label_to_cluster_ptr_.at(label_cluster_source)->getDiffDegree(m_map_label_to_cluster_ptr_.at(label_cluster_target).get()),
             m_map_label_to_node_ptr_.at(label_cluster_source),
@@ -53,40 +52,53 @@ public:
     void merge()
     {
         std::unordered_map<int32_t, bool> map_label_to_check_visited;
-        std::unordered_map<int32_t, std::shared_ptr<LinearCluster>> map_label_to_parent;
-
         for (auto kv : m_map_label_to_cluster_ptr_)
         {
             int32_t label = kv.first;
-            std::shared_ptr<LinearCluster> cluster_ptr = kv.second;
             map_label_to_check_visited.insert({label, false});
-            map_label_to_parent.insert({label, cluster_ptr});
         }
 
+        std::unordered_map<int32_t, std::vector<int32_t>> map_label_to_merged;
         std::vector<int32_t> label_list_end_point_cluster = get_end_points_cluster_label();
         for (int32_t label : label_list_end_point_cluster)
         {
-            depth_first_search_cluster_merge(label, -1, map_label_to_parent, map_label_to_check_visited);
+            if (map_label_to_check_visited.at(label))
+                continue;
+            std::vector<int32_t> label_list_to_merge;
+            depth_first_search_cluster_merge(label, -1, label_list_to_merge, map_label_to_check_visited);
+            map_label_to_merged.insert({label, label_list_to_merge});
         }
+        std::cout << map_label_to_merged.size() << std::endl;
     }
 
     void depth_first_search_cluster_merge(
         const int32_t &label_current, const int32_t &label_parent,
-        std::unordered_map<int32_t, std::shared_ptr<LinearCluster>> map_label_to_parent,
+        std::vector<int32_t> &label_list_to_merge,
         std::unordered_map<int32_t, bool> &map_label_to_check_visited)
     {
         if (map_label_to_check_visited.at(label_current))
             return;
 
-        map_label_to_check_visited[label_current] = true;
+        // to accept duplicated labelling of specified cluster
+        if(m_map_label_to_cluster_ptr_.at(label_current)->type() != LinearClusterType::kJunctionPointCluster)
+            map_label_to_check_visited[label_current] = true;
+
+        label_list_to_merge.push_back(label_current);
         std::vector<int32_t> label_list_neighbors = getNeighborLabelListfromClusterLabel(label_current);
         for(int32_t label_neighbor :label_list_neighbors){
+            if(label_neighbor == label_parent)
+                continue;
+
             /// check merge condition
+            std::cout << label_current << " " << label_neighbor << std::endl;
             std::shared_ptr<LinearCluster> cluster_current_label = m_map_label_to_cluster_ptr_.at(label_current);
             std::shared_ptr<LinearCluster> cluster_neighbor_label = m_map_label_to_cluster_ptr_.at(label_neighbor);
+            //bool test = cluster_current_label->getDiffDegree(cluster_current_label.get()) < m_angular_threshold_cluster_merge_;
+            /*
             if(cluster_current_label->getDiffDegree(cluster_current_label.get()) < m_angular_threshold_cluster_merge_){
-                
+                depth_first_search_cluster_merge(label_neighbor, label_current, label_list_to_merge, map_label_to_check_visited);
             }
+            */
         }
     }
 

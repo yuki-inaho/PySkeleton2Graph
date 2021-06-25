@@ -183,6 +183,8 @@ public:
         }
       }
     }
+
+    merge_helper.merge();
   }
 
   std::vector<int32_t> getNodeLabels() const
