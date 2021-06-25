@@ -132,8 +132,11 @@ public:
     {
         src = pixel_source.getHash();
         dst = pixel_destination.getHash();
+
         m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
-        m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
+        if(pixel_source.getPointType()==PointType::kJunctionPoint || pixel_destination.getPointType()==PointType::kJunctionPoint){
+            m_angle_between_two_pixels_ = 10E8;
+        }
     }
 
     float getEdgeLength()
@@ -177,6 +180,7 @@ private:
             y_diff = float(pixel_a_pos_y - pixel_b_pos_y);
         }
         float angle = fast_atan2f_2(y_diff, x_diff);
+        //float angle = atan2f(y_diff, x_diff + 10E-8);
         return angle;
     }
 

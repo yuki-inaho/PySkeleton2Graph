@@ -99,7 +99,6 @@ private:
     {
         float edge_angle_from = m_graph_helper_ptr_->getEdgePtr(hash_ancester, hash_source)->data.getEdgeAngle();
         float edge_angle_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeAngle();
-        float edge_length_to = m_graph_helper_ptr_->getEdgePtr(hash_source, hash_target)->data.getEdgeLength();
         return std::abs(edge_angle_to - edge_angle_from) / M_PI * 180.0;
     }
 
