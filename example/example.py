@@ -69,7 +69,6 @@ show_image(
     scale=3.0,
 )
 """
-
 show_image(
     draw_graph(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
@@ -80,4 +79,3 @@ show_image(
     ),
     scale=3.0,
 )
-

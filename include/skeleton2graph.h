@@ -63,7 +63,6 @@ public:
     articulationPoint<SkeletonPixel, EdgeSkeletonPixels>(m_graph_helper_ptr_, hash_list_articular_node, hash_list_clique_to_compress);
 
     /// Remove redundant node
-    std::cout << "before:" << m_graph_helper_ptr_->size() << std::endl; //debug
     for (std::vector<Hash> hash_list_clique : hash_list_clique_to_compress)
     {
       /// Search locally maximum connectivity node, and merge around node to it
@@ -82,7 +81,6 @@ public:
     }
     m_graph_helper_ptr_->refreshGraphInfo();
     m_graph_helper_ptr_->validateGraphInfo();
-    std::cout << "make junction points unique:" << m_graph_helper_ptr_->size() << std::endl; //debug
 
     /*
     Step 2. Bridge Link Pruning
@@ -98,25 +96,22 @@ public:
     m_graph_helper_ptr_->refreshGraphInfo();
     m_graph_helper_ptr_->validateGraphInfo();
 
-    std::cout << "after pruning:" << m_graph_helper_ptr_->size() << std::endl; //debug
-
     /// Removing too small connected component cluster points
     GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_);
     cc.setup();
     cc.compute();
-    std::cout << "pruning" << std::endl; //debug
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
+      /// node size is too small
       if (hash_list_cc.size() < 2)
-      { // node size is too small
+      {
         for (Hash hash_cc_elem : hash_list_cc)
           m_graph_helper_ptr_->removeNode(hash_cc_elem);
         m_graph_helper_ptr_->refreshGraphInfo();
         m_graph_helper_ptr_->validateGraphInfo();
       }
     }
-    std::cout << "final:" << m_graph_helper_ptr_->size() << std::endl; //debug
 
     /// Labelling with
     m_graph_helper_ptr_->setupOutputGraph();
@@ -191,7 +186,6 @@ private:
 
         // Add node (skeleton pixel)
         m_graph_helper_ptr_->addNode(hash, pixel_uv);
-        //std::cout << m_map_hash2pixel_ptr_initial_.at(hash)->getHash() << std::endl;
         m_map_hash2pixel_initial_.insert(Hash2Pixel{hash, pixel_uv});
         m_map_hash2index_initial_.insert(Hash2Index{hash, node_count});
         node_count++;

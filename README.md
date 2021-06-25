@@ -1,2 +1,2 @@
 # TODO:
-[] Remove C++ OpenCV Dependency
+- [ ] Remove C++ OpenCV Dependency

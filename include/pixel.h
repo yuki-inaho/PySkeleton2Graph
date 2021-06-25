@@ -111,7 +111,6 @@ public:
     {
         src = pixel_source.getHash();
         dst = pixel_destination.getHash();
-        //std::cout << src << " " << dst << std::endl;
         m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
         m_angle_between_two_pixels_ = calcPixelDirection(pixel_source, pixel_destination);
     };
