@@ -14,6 +14,7 @@
 #include "biconnected_component.h"
 #include "pruning.h"
 #include "connected_component.h"
+#include "linear_cluster.h"
 
 typedef SkeletonPixel *SkeletonPixelPtr;
 typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
@@ -127,7 +128,31 @@ public:
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     m_graph_helper_ptr_->setConnectedComponentLabels(hash_list_each_cc);
     m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
+  
+    int32_t n_cluster = hash_list_each_cc.size();
+
+    // Setup for cluster merging
+    
+    int32_t cluster_index = 1;
+    m_linear_cluster_list_.clear();
+    for(std::vector<Hash> hash_list_cc: hash_list_each_cc){
+      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_);
+      for(Hash hash: hash_list_cc){
+        linear_cluster.addNodePtr(m_graph_helper_ptr_->getNodePtr(hash));
+      }
+      m_linear_cluster_list_.push_back(linear_cluster);
+      cluster_index++;
+    }
   }
+
+  void mergeCluster()
+  {
+    for(LinearCluster m_linear_cluster_: m_linear_cluster_list_){
+      m_linear_cluster_.fitLine();
+    }    
+
+  }
+
 
   std::vector<int32_t> getNodeLabels() const
   {
@@ -250,6 +275,7 @@ private:
   std::vector<int32_t> m_node_labels_output_;
   std::vector<std::vector<int32_t>> m_node_position_list_output_;
   std::vector<std::vector<int32_t>> m_edge_list_output_;
+  std::vector<LinearCluster> m_linear_cluster_list_;
 };
 
 #endif // PYSKELETON2GRAPH_INCLUDE_SKELETON2GRAPH_H_

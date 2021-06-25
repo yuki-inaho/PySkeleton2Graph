@@ -8,6 +8,13 @@ enum struct PointType
     kJunctionPoint
 };
 
+enum struct LinearClusterType
+{
+    kEndPointCluster,
+    kBridgePointCluster,
+    kJunctionPointCluster
+};
+
 enum struct ConnectedComponent
 {
     kSimple,
