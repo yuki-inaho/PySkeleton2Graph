@@ -309,6 +309,24 @@ public:
         }
     }
 
+    void updateOutputNodeLabels()
+    {
+        m_node_label_list_.clear();
+        std::unordered_map<Hash, int32_t> map_hash2index;
+        int32_t node_index = 0;
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            map_hash2index.insert({node_ptr->data.getHash(), node_index});
+            node_index++;
+        }
+        m_node_label_list_.resize(map_hash2index.size());
+
+        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        {
+            m_node_label_list_[map_hash2index[node_ptr->data.getHash()]] = node_ptr->data.getLabel();
+        }
+    }
+
 private:
     int8_t calcNodeConnectivity(const Node<ND, LD> *node_ptr)
     {

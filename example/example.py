@@ -43,7 +43,7 @@ def show_image(image, title="image", scale=1.0):
 
 skeleton = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 frame = SkeletonFrame(skeleton)
-s2g = Skeleton2Graph(simplification_threshold=5, directional_threshold=10, angular_threshold_cluster_merge=30)
+s2g = Skeleton2Graph(simplification_threshold=5, directional_threshold=10, angular_threshold_cluster_merge=40)
 start = time.time()
 s2g.set_frame(frame)
 node_init = s2g.get_node_positions()
@@ -71,7 +71,6 @@ show_image(
 )
 """
 
-"""
 show_image(
     draw_graph(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
@@ -82,4 +81,3 @@ show_image(
     ),
     scale=3.0,
 )
-"""

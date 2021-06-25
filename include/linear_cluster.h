@@ -64,15 +64,18 @@ public:
         return m_nx_ * p_x + m_ny_ * p_y + m_constant_;
     }
 
-    float n_x() const {
+    float n_x() const
+    {
         return m_nx_;
     }
 
-    float n_y() const {
+    float n_y() const
+    {
         return m_ny_;
     }
 
-    float n_constant() const {
+    float n_constant() const
+    {
         return m_constant_;
     }
 
@@ -80,7 +83,6 @@ private:
     float m_nx_;
     float m_ny_;
     float m_constant_;
-
 };
 
 class LinearCluster
@@ -92,6 +94,15 @@ public:
     int32_t label() const
     {
         return m_cluster_label_;
+    }
+
+    void relabel(const int32_t &new_label)
+    {
+        m_cluster_label_ = new_label;
+        for (std::shared_ptr<SkeletonGraphNode> node : m_node_list_)
+        {
+            node->data.setLabel(new_label);
+        }
     }
 
     int32_t size() const
@@ -193,11 +204,17 @@ public:
         float inner_product_n = n_this_x * n_comp_x + n_this_y * n_comp_y;
 
         /// TODO: check whether it is valid or not
-        if(inner_product_n >= 0){
+        /*
+        if (inner_product_n >= 0)
+        {
             return std::acos(inner_product_n) / M_PI * 180.0;
-        }else{
+        }
+        else
+        {
             return 180 - std::acos(inner_product_n) / M_PI * 180.0;
         }
+        */
+        return std::acos(inner_product_n) / M_PI * 180.0;
     }
 
     float getProjected1DPoint(const int32_t &p_x, const int32_t &p_y, int32_t &p_x_projected, int32_t &p_y_projected)
@@ -256,7 +273,8 @@ public:
         return false;
     }
 
-    void debug_print(){
+    void debug_print()
+    {
         std::cout << m_line_model_.n_x() << " " << m_line_model_.n_y() << std::endl;
     }
 

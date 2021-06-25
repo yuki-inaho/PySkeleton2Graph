@@ -18,7 +18,7 @@ typedef Graph<LinearCluster, float> ClusterGraph;
 class ClusterMergeHelper
 {
 public:
-    ClusterMergeHelper(SkeletonGraphHelperPtr graph_helper, const std::vector<LinearCluster> &linear_cluster_list, const float &angular_threshold_cluster_merge) : n_nodes(0), n_edges(0), m_angular_threshold_cluster_merge_(angular_threshold_cluster_merge)
+    ClusterMergeHelper(SkeletonGraphHelperPtr graph_helper, const std::vector<LinearCluster> &linear_cluster_list, const float &angular_threshold_cluster_merge) : m_graph_helper_ptr_(graph_helper), n_nodes(0), n_edges(0), m_angular_threshold_cluster_merge_(angular_threshold_cluster_merge)
     {
         int32_t n_cluster = linear_cluster_list.size();
         for (int32_t i = 0; i < n_cluster; i++)
@@ -69,11 +69,28 @@ public:
             map_label_to_merged.insert({label, label_list_to_merge});
         }
 
-        // Rewrite label information
-        for (auto kv : map_label_to_merged)
+        /// TODO: write explanation
+        for (auto kv : m_map_label_to_cluster_ptr_)
         {
             int32_t label = kv.first;
-            int32_t size = kv.second.size();
+            if (!map_label_to_check_visited.at(label))
+            {
+                m_map_label_to_cluster_ptr_.at(label)->relabel(0);
+            }
+        }
+
+        // Rewrite label information
+        int32_t new_label = 1;
+        for (auto kv : map_label_to_merged)
+        {
+            std::vector<int32_t> label_list_to_repaint = kv.second;
+            int32_t label_to_repaint_end_point_cluster = kv.first;
+            m_map_label_to_cluster_ptr_.at(label_to_repaint_end_point_cluster)->relabel(new_label);
+            for (int32_t label_to_repaint : label_list_to_repaint)
+            {
+                m_map_label_to_cluster_ptr_.at(label_to_repaint)->relabel(new_label);
+            }
+            new_label++;
         }
     }
 
@@ -93,13 +110,17 @@ public:
         std::vector<int32_t> label_list_neighbors = getNeighborLabelListfromClusterLabel(label_current);
         for (int32_t label_neighbor : label_list_neighbors)
         {
+            /// simplify condition
             if (label_neighbor == label_parent)
+            {
                 continue;
+            }
 
-            /// check merge condition
             std::shared_ptr<LinearCluster> cluster_current_label = m_map_label_to_cluster_ptr_.at(label_current);
             std::shared_ptr<LinearCluster> cluster_neighbor_label = m_map_label_to_cluster_ptr_.at(label_neighbor);
-            if (cluster_current_label->getDiffDegree(cluster_neighbor_label.get()) < m_angular_threshold_cluster_merge_)
+            bool search_condition = cluster_current_label->getDiffDegree(cluster_neighbor_label.get()) < m_angular_threshold_cluster_merge_;
+
+            if (search_condition)
             {
                 depth_first_search_cluster_merge(label_neighbor, label_current, label_list_to_merge, map_label_to_check_visited);
             }
@@ -137,6 +158,7 @@ private:
     }
 
     float m_angular_threshold_cluster_merge_;
+    SkeletonGraphHelperPtr m_graph_helper_ptr_;
     std::unordered_map<int32_t, std::shared_ptr<LinearCluster>> m_map_label_to_cluster_ptr_;
 
     // TODO; use smart pointer

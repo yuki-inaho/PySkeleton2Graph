@@ -182,6 +182,8 @@ public:
     }
 
     merge_helper.merge();
+    m_graph_helper_ptr_->updateOutputNodeLabels();
+    m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
   }
 
   std::vector<int32_t> getNodeLabels() const
