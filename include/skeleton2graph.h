@@ -41,7 +41,7 @@ public:
       exit(EXIT_FAILURE);
     }
 
-    m_cluster_proximity_threshold_ = m_simplification_threshold_ * 1.2;
+    m_cluster_proximity_threshold_ = m_simplification_threshold_ * 1.5;
   }
 
   ~Skeleton2Graph() {}
@@ -153,16 +153,13 @@ public:
   void mergeClusters()
   {
     int32_t n_clusters = m_linear_cluster_list_.size();
-    for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
-    {
-      m_linear_cluster_.fitLine();
+    for (int32_t i = 0; i< n_clusters; i++){
+      m_linear_cluster_list_[i].fitLine();
     }
 
-    float m_degree_threshold_ = 30;
     ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_, m_angular_threshold_cluster_merge_);
-    for (LinearCluster m_linear_cluster_ : m_linear_cluster_list_)
-    {
-      merge_helper.addNode(m_linear_cluster_);
+    for (int32_t i = 0; i< n_clusters; i++){
+      merge_helper.addNode(m_linear_cluster_list_[i]);
     }
 
     /// TODO: reimplement more efficiently, if not actually feasible

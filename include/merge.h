@@ -68,7 +68,13 @@ public:
             depth_first_search_cluster_merge(label, -1, label_list_to_merge, map_label_to_check_visited);
             map_label_to_merged.insert({label, label_list_to_merge});
         }
-        std::cout << map_label_to_merged.size() << std::endl;
+
+        // Rewrite label information
+        for (auto kv : map_label_to_merged)
+        {
+            int32_t label = kv.first;
+            int32_t size = kv.second.size();
+        }
     }
 
     void depth_first_search_cluster_merge(
@@ -80,25 +86,23 @@ public:
             return;
 
         // to accept duplicated labelling of specified cluster
-        if(m_map_label_to_cluster_ptr_.at(label_current)->type() != LinearClusterType::kJunctionPointCluster)
+        if (m_map_label_to_cluster_ptr_.at(label_current)->type() != LinearClusterType::kJunctionPointCluster)
             map_label_to_check_visited[label_current] = true;
 
         label_list_to_merge.push_back(label_current);
         std::vector<int32_t> label_list_neighbors = getNeighborLabelListfromClusterLabel(label_current);
-        for(int32_t label_neighbor :label_list_neighbors){
-            if(label_neighbor == label_parent)
+        for (int32_t label_neighbor : label_list_neighbors)
+        {
+            if (label_neighbor == label_parent)
                 continue;
 
             /// check merge condition
-            std::cout << label_current << " " << label_neighbor << std::endl;
             std::shared_ptr<LinearCluster> cluster_current_label = m_map_label_to_cluster_ptr_.at(label_current);
             std::shared_ptr<LinearCluster> cluster_neighbor_label = m_map_label_to_cluster_ptr_.at(label_neighbor);
-            //bool test = cluster_current_label->getDiffDegree(cluster_current_label.get()) < m_angular_threshold_cluster_merge_;
-            /*
-            if(cluster_current_label->getDiffDegree(cluster_current_label.get()) < m_angular_threshold_cluster_merge_){
+            if (cluster_current_label->getDiffDegree(cluster_neighbor_label.get()) < m_angular_threshold_cluster_merge_)
+            {
                 depth_first_search_cluster_merge(label_neighbor, label_current, label_list_to_merge, map_label_to_check_visited);
             }
-            */
         }
     }
 
@@ -109,7 +113,7 @@ private:
         std::vector<int32_t> label_list_neighbors;
         std::transform(
             cluster_ptr_list_neighbors.begin(), cluster_ptr_list_neighbors.end(),
-            label_list_neighbors.begin(),
+            std::back_inserter(label_list_neighbors),
             [](ClusterGraphNode *node)
             {
                 return node->data.label();
