@@ -287,6 +287,8 @@ private:
 
     bool isEndPoint(const std::shared_ptr<SkeletonGraphNode> node_ptr) const
     {
+        if (node_ptr->data.getPointType() == PointType::kEndPoint)
+            return true;
         for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
         {
             int32_t label_dst = m_graph_helper_ptr_->getNodePtr(edge_ptr->data.dst)->data.getLabel();

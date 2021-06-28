@@ -74,7 +74,8 @@ show_image(
 """
 
 test = s2g.get_linear_clusters()
-print(test[0].indices_end_points())
+[print(elem.size()) for elem in test]
+[print(elem.indices_end_points()) for elem in test]
 
 """
 result_img = draw_graph(
