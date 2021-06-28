@@ -17,15 +17,13 @@ typedef Edge<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphEdge;
 typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> *SkeletonGraphHelperPtr;
 typedef Eigen::Matrix<float, 3, Eigen::Dynamic> Matrix2DPoints;
 
-
 // TODO: rename "m_node_list_"
-struct LineCoeff
+class LineCoeff
 {
-    float n_x;
-    float n_y;
-    float constant;
+public:
+    LineCoeff(){};
 
-    void set(float p1_x, float p1_y, float p2_x, float p2_y)
+    void set(const float &p1_x, const float &p1_y, const float &p2_x, const float &p2_y)
     {
         float l_x = p2_x - p1_x;
         float l_y = p2_y - p1_y;
@@ -34,43 +32,63 @@ struct LineCoeff
         l_x /= l_sqrt;
         l_y /= l_sqrt;
 
-        n_x = -l_y;
-        n_y = l_x;
+        m_nx_ = -l_y;
+        m_ny_ = l_x;
 
         /// align vector direction
-        if (n_y > 0)
+        if (m_ny_ > 0)
         {
-            n_x *= -1;
-            n_y *= -1;
+            m_nx_ *= -1;
+            m_ny_ *= -1;
         }
-        constant = -(n_x * p1_x + n_y * p1_y);
+        m_constant_ = -(m_nx_ * p1_x + m_ny_ * p1_y);
     }
 
-    void set(float n_x_, float n_y_, float constant_)
+    void set(const float &n_x_, const float &n_y_, const float &constant_)
     {
         float n_norm = std::sqrt(n_x_ * n_x_ + n_y_ * n_y_);
-        n_x = n_x_ / n_norm;
-        n_y = n_y_ / n_norm;
+        m_nx_ = n_x_ / n_norm;
+        m_ny_ = n_y_ / n_norm;
 
         /// align vector direction
-        if (n_y > 0)
+        if (m_ny_ > 0)
         {
-            n_x *= -1;
-            n_y *= -1;
+            m_nx_ *= -1;
+            m_ny_ *= -1;
         }
-        constant = constant_ / n_norm;
+        m_constant_ = constant_ / n_norm;
     }
 
-    float get_fit_error(float p_x, float p_y)
+    float get_fit_error(const float &p_x, const float &p_y)
     {
-        return n_x * p_x + n_y * p_y + constant;
+        return m_nx_ * p_x + m_ny_ * p_y + m_constant_;
     }
+
+    float n_x() const
+    {
+        return m_nx_;
+    }
+
+    float n_y() const
+    {
+        return m_ny_;
+    }
+
+    float n_constant() const
+    {
+        return m_constant_;
+    }
+
+private:
+    float m_nx_;
+    float m_ny_;
+    float m_constant_;
 };
 
 class LinearCluster
 {
 public:
-    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold){};
+    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper, float cluster_proximity_threshold) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_proximity_threshold_(cluster_proximity_threshold), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
     ~LinearCluster(){};
 
     int32_t label() const
@@ -78,13 +96,29 @@ public:
         return m_cluster_label_;
     }
 
+    void relabel(const int32_t &new_label)
+    {
+        m_cluster_label_ = new_label;
+        for (std::shared_ptr<SkeletonGraphNode> node : m_node_list_)
+        {
+            node->data.setLabel(new_label);
+        }
+    }
+
     int32_t size() const
     {
         return m_node_list_.size();
     }
 
-    std::shared_ptr<SkeletonGraphNode> accessNodeByIndex(int32_t index){
-        if((index < 0) || (index >= size())){
+    LinearClusterType type() const
+    {
+        return m_cluster_type_;
+    }
+
+    std::shared_ptr<SkeletonGraphNode> accessNodeByIndex(int32_t index)
+    {
+        if ((index < 0) || (index >= size()))
+        {
             std::cerr << "Invalid cluster point access detected" << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -94,6 +128,15 @@ public:
     void addNodePtr(SkeletonGraphNode *node_ptr)
     {
         std::shared_ptr<SkeletonGraphNode> node_shared_ptr(node_ptr);
+        /// FORME: confirm in the case of kEndPointCluster + kJunctionPointCluster
+        if (node_ptr->data.getPointType() == PointType::kEndPoint)
+        {
+            m_cluster_type_ = LinearClusterType::kEndPointCluster;
+        }
+        else if (node_ptr->data.getPointType() == PointType::kJunctionPoint)
+        {
+            m_cluster_type_ = LinearClusterType::kJunctionPointCluster;
+        }
         m_node_list_.push_back(node_shared_ptr);
     }
 
@@ -116,7 +159,9 @@ public:
         }
         else
         {
-            fitLineBySVD(m_line_model_);
+            float n_x, n_y, n_constant;
+            fitLineBySVD(n_x, n_y, n_constant);
+            m_line_model_.set(n_x, n_y, n_constant);
         }
     }
 
@@ -130,31 +175,53 @@ public:
             m_node_list_[i]->data.getPosition(px, py);
             sum_error += m_line_model_.get_fit_error(px, py);
         }
-        return sum_error / float(n_points);
+        return sum_error / n_points;
     }
 
-    void normal(float &n_x, float &n_y) const
+    void normal(float &n_x, float &n_y)
     {
-        n_x = m_line_model_.n_x;
-        n_y = m_line_model_.n_y;
+        n_x = normal_x();
+        n_y = normal_y();
     }
 
-    float getDiffDegree(const LinearCluster *line_model_compare)
+    float normal_x()
     {
-        float n_this_x = m_line_model_.n_x;
-        float n_this_y = m_line_model_.n_y;
+        return m_line_model_.n_x();
+    }
+
+    float normal_y()
+    {
+        return m_line_model_.n_y();
+    }
+
+    float getDiffDegree(LinearCluster *line_model_compare)
+    {
+        float n_this_x = m_line_model_.n_x();
+        float n_this_y = m_line_model_.n_y();
         float n_comp_x, n_comp_y;
-        line_model_compare->normal(n_comp_x, n_comp_y);
+        n_comp_x = line_model_compare->normal_x();
+        n_comp_y = line_model_compare->normal_y();
         float inner_product_n = n_this_x * n_comp_x + n_this_y * n_comp_y;
+
+        /// TODO: check whether it is valid or not
+        /*
+        if (inner_product_n >= 0)
+        {
+            return std::acos(inner_product_n) / M_PI * 180.0;
+        }
+        else
+        {
+            return 180 - std::acos(inner_product_n) / M_PI * 180.0;
+        }
+        */
         return std::acos(inner_product_n) / M_PI * 180.0;
     }
 
     float getProjected1DPoint(const int32_t &p_x, const int32_t &p_y, int32_t &p_x_projected, int32_t &p_y_projected)
     {
         float error = calcPointProjectionError(p_x, p_y);
-        p_x_projected = static_cast<int32_t>(p_x - error * m_line_model_.n_x);
-        p_y_projected = static_cast<int32_t>(p_y - error * m_line_model_.n_y);
-        std::cout << calcPointProjectionError(p_x_projected, p_y_projected) << std::endl;
+        p_x_projected = static_cast<int32_t>(p_x - error * m_line_model_.n_x());
+        p_y_projected = static_cast<int32_t>(p_y - error * m_line_model_.n_y());
     }
 
     /*
@@ -162,35 +229,64 @@ public:
     */
     float calcPointProjectionError(const float &p_x, const float &p_y)
     {
-        float n_x = m_line_model_.n_x;
-        float n_y = m_line_model_.n_y;
-        float c = m_line_model_.constant;
+        float n_x = m_line_model_.n_x();
+        float n_y = m_line_model_.n_y();
+        float c = m_line_model_.n_constant();
         return n_x * p_x + n_y * p_y + c;
     }
 
     float calcTwoPointDistanceOnLine(const float &p0_x, const float &p0_y, const float &p1_x, const float &p1_y)
     {
-        float n_x = m_line_model_.n_x;
-        float n_y = m_line_model_.n_y;
+        float n_x = m_line_model_.n_x();
+        float n_y = m_line_model_.n_y();
         float diff_x = p1_x - p0_x;
         float diff_y = p1_y - p0_y;
         return n_x * diff_x + n_y * diff_y;
     }
 
-    bool isNeighborCluster(const LinearCluster& cluster_compare){
-        for(std::shared_ptr<SkeletonGraphNode> node_ptr_this: m_node_list_){
-            /*
-            for(std::shared_ptr<SkeletonGraphNode> node_compare : m_node_list_){
-                
-
+    // FORME: use reference?
+    bool isClusterNeighbor(LinearCluster *cluster_compare)
+    {
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr_this : m_node_list_)
+        {
+            int32_t p_x_this, p_y_this;
+            node_ptr_this->data.getPosition(p_x_this, p_y_this);
+            if (cluster_compare->isPointNeighbor(p_x_this, p_y_this))
+            {
+                return true;
             }
-            */
         }
-        return true;
+        return false;
+    }
+
+    bool isPointNeighbor(const int32_t &p_x, const int32_t &p_y)
+    {
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr_this : m_node_list_)
+        {
+            int32_t p_x_this, p_y_this;
+            node_ptr_this->data.getPosition(p_x_this, p_y_this);
+            if (arePointsMutual(p_x_this, p_y_this, p_x, p_y))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void debug_print()
+    {
+        std::cout << m_line_model_.n_x() << " " << m_line_model_.n_y() << std::endl;
     }
 
 private:
-    void fitLineBySVD(LineCoeff &line_coeff)
+    bool arePointsMutual(float p1_x, float p1_y, float p2_x, float p2_y)
+    {
+        float diff_x = p2_x - p1_x;
+        float diff_y = p2_y - p1_y;
+        return std::sqrt(diff_x * diff_x + diff_y * diff_y) <= m_cluster_proximity_threshold_;
+    }
+
+    void fitLineBySVD(float &n_x_output, float &n_y_output, float &constant_output)
     {
         Matrix2DPoints mat_points;
         mat_points.resize(3, m_node_list_.size());
@@ -205,9 +301,12 @@ private:
         }
         Eigen::JacobiSVD<Eigen::Matrix<float, 3, Eigen::Dynamic>> svd(mat_points, Eigen::ComputeFullU | Eigen::ComputeFullV);
         Eigen::Matrix<float, 3, 3> u = svd.matrixU();
-        line_coeff.set(u(0, 2), u(1, 2), u(2, 2)); // get eigen vector corresponded with the smallast eigen value
+        n_x_output = u(0, 2);
+        n_y_output = u(1, 2);
+        constant_output = u(2, 2);
     }
 
+    LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
     std::vector<std::shared_ptr<SkeletonGraphNode>> m_node_list_;
