@@ -15,7 +15,6 @@
 #include "pruning.h"
 #include "connected_component.h"
 #include "linear_cluster.h"
-#include "merge.h"
 
 typedef SkeletonPixel *SkeletonPixelPtr;
 typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
@@ -28,7 +27,7 @@ typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphHelper;
 class Skeleton2Graph
 {
 public:
-  Skeleton2Graph(const float &simplification_threshold, const float &directional_threshold, const float &angular_threshold_cluster_merge) : m_simplification_threshold_(simplification_threshold), m_directional_threshold_(directional_threshold), m_angular_threshold_cluster_merge_(angular_threshold_cluster_merge)
+  Skeleton2Graph(const float &simplification_threshold, const float &directional_threshold) : m_simplification_threshold_(simplification_threshold), m_directional_threshold_(directional_threshold)
   {
     if (simplification_threshold < 1.415)
     {
@@ -40,8 +39,6 @@ public:
       std::cerr << "Please assign directional_threshold in the range of 0 <= directional_threshold < 90" << std::endl;
       exit(EXIT_FAILURE);
     }
-
-    m_cluster_proximity_threshold_ = m_simplification_threshold_ * 1.5;
   }
 
   ~Skeleton2Graph() {}
@@ -131,16 +128,14 @@ public:
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
     m_graph_helper_ptr_->setConnectedComponentLabels(hash_list_each_cc);
     m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
-
     int32_t n_cluster = hash_list_each_cc.size();
 
     // Setup for cluster merging
-
     int32_t cluster_index = 1;
     m_linear_cluster_list_.clear();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
-      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_, m_cluster_proximity_threshold_);
+      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_);
       for (Hash hash : hash_list_cc)
       {
         linear_cluster.addNodePtr(m_graph_helper_ptr_->getNodePtr(hash));
@@ -148,42 +143,12 @@ public:
       m_linear_cluster_list_.push_back(linear_cluster);
       cluster_index++;
     }
-  }
 
-  void mergeClusters()
-  {
+    // Fit 2d points to a line 
     int32_t n_clusters = m_linear_cluster_list_.size();
     for (int32_t i = 0; i< n_clusters; i++){
       m_linear_cluster_list_[i].fitLine();
     }
-
-    ClusterMergeHelper merge_helper(m_graph_helper_ptr_, m_linear_cluster_list_, m_angular_threshold_cluster_merge_);
-    for (int32_t i = 0; i< n_clusters; i++){
-      merge_helper.addNode(m_linear_cluster_list_[i]);
-    }
-
-    /// TODO: reimplement more efficiently, if not actually feasible
-    for (int32_t i = 0; i < n_clusters; i++)
-    {
-      for (int32_t j = 0; j < n_clusters; j++)
-      {
-        if (j > i)
-        {
-          /// cluster index -> cluster label
-          int32_t label_i = m_linear_cluster_list_[i].label();
-          int32_t label_j = m_linear_cluster_list_[j].label();
-          if (m_linear_cluster_list_[i].isClusterNeighbor(&m_linear_cluster_list_[j]))
-          {
-            merge_helper.addEdge(label_i, label_j);
-            merge_helper.addEdge(label_j, label_i);
-          }
-        }
-      }
-    }
-
-    merge_helper.merge();
-    m_graph_helper_ptr_->updateOutputNodeLabels();
-    m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
   }
 
   std::vector<int32_t> getNodeLabels() const
@@ -300,8 +265,6 @@ private:
   SkeletonGraph m_graph_initial_;
   SkeletonGraphHelper *m_graph_helper_ptr_;
 
-  float m_angular_threshold_cluster_merge_;
-  float m_cluster_proximity_threshold_;
   float m_simplification_threshold_;
   float m_directional_threshold_;
 
