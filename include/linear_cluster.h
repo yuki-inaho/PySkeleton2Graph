@@ -2,20 +2,18 @@
 #define PYSKELETON2GRAPH_INCLUDE_LINEAR_CLUSTER_H_
 
 #if __has_include(<Eigen>)
-    #include <Eigen/Dense>
-    #include <Eigen/SVD>
+#include <Eigen/Dense>
+#include <Eigen/SVD>
 #else
-    #include <eigen3/Eigen/Dense>
-    #include <eigen3/Eigen/SVD>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/SVD>
 #endif
 
 #include "pixel.h"
 #include "graph.h"
 #include "graph_helper.h"
+#include "typedef_graph.h"
 
-typedef Node<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphNode;
-typedef Edge<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphEdge;
-typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> *SkeletonGraphHelperPtr;
 typedef Eigen::Matrix<float, 3, Eigen::Dynamic> Matrix2DPoints;
 
 // TODO: rename "m_node_list_"
@@ -90,7 +88,7 @@ class LinearCluster
 {
 public:
     LinearCluster(){};
-    LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
+    LinearCluster(int32_t cluster_label, const SkeletonGraphHelperPtr graph_helper) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
     ~LinearCluster(){};
 
     int32_t label() const
@@ -142,10 +140,23 @@ public:
         return points;
     }
 
+    std::vector<int32_t> getEndPointIndices() const
+    {
+        std::vector<int32_t> indices;
+        int32_t index = 0;
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
+        {
+            if (isEndPoint(node_ptr))
+                indices.push_back(index);
+            index++;
+        }
+        return indices;
+    }
+
     /*
     mainly for debug
     */
-    std::vector<std::vector<int32_t>> edges()
+    std::vector<std::vector<int32_t>> edges() const
     {
         std::unordered_map<Hash, int32_t> map_hash2index;
         for (int32_t index = 0; index < m_node_list_.size(); index++)
@@ -165,16 +176,6 @@ public:
             }
         }
         return edges;
-    }
-
-    std::shared_ptr<SkeletonGraphNode> access(int32_t index)
-    {
-        if ((index < 0) || (index >= size()))
-        {
-            std::cerr << "Invalid cluster point access detected" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        return m_node_list_[index];
     }
 
     void addNodePtr(SkeletonGraphNode *node_ptr)
@@ -282,6 +283,17 @@ private:
         n_x_output = u(0, 2);
         n_y_output = u(1, 2);
         constant_output = u(2, 2);
+    }
+
+    bool isEndPoint(const std::shared_ptr<SkeletonGraphNode> node_ptr) const
+    {
+        for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
+        {
+            int32_t label_dst = m_graph_helper_ptr_->getNodePtr(edge_ptr->data.dst)->data.getLabel();
+            if (m_cluster_label_ != label_dst)
+                return true;
+        }
+        return false;
     }
 
     LinearClusterType m_cluster_type_;

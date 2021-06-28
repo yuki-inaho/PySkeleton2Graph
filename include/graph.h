@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <unordered_map>
-#include "typedef.h"
+#include "typedef_pixel.h"
 
 // TODO: use smart ptr
 template <typename ND, typename LD> struct Node;

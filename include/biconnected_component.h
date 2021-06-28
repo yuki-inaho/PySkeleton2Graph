@@ -24,7 +24,7 @@ template <typename ND, typename LD>
 using Edgeset = std::set<Edge<ND, LD> *, EdgeCompare<ND, LD>>;
 
 template <typename ND, typename LD>
-void dfs(const GraphHelper<ND, LD> *gh, Hash hash_v, Hash hash_parent,
+void dfs(const std::shared_ptr<GraphHelper<ND, LD>> gh, Hash hash_v, Hash hash_parent,
          std::vector<Hash> &art, std::vector<Edgeset<ND, LD>> &bcomp, std::stack<Edge<ND, LD> *> &S,
          std::unordered_map<Hash, int32_t> &ord, std::unordered_map<Hash, int32_t> &low, int &time)
 {
@@ -62,7 +62,7 @@ void dfs(const GraphHelper<ND, LD> *gh, Hash hash_v, Hash hash_parent,
 }
 
 template <typename ND, typename LD>
-void articulationPoint(const GraphHelper<ND, LD> *gh, std::vector<Hash> &art, std::vector<std::vector<Hash>> &hash_list_clique_to_compress)
+void articulationPoint(const std::shared_ptr<GraphHelper<ND, LD>> gh, std::vector<Hash> &art, std::vector<std::vector<Hash>> &hash_list_clique_to_compress)
 {
     std::vector<Edgeset<ND, LD>> bcomp;
     std::vector<Hash> hash_list_gh = gh->getHashList();

@@ -2,7 +2,7 @@
 #define PYSKELETON2GRAPH_INCLUDE_PIXEL_H_
 
 #include <vector>
-#include "typedef.h"
+#include "typedef_pixel.h"
 #include "enum.h"
 #include "fast_arithmetic.h"
 

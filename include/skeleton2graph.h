@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <unordered_map>
 #include <opencv2/opencv.hpp>
-#include "typedef.h"
+#include "typedef_pixel.h"
 #include "pixel.h"
 #include "frame.h"
 #include "enum.h"
 #include "graph.h"
 #include "graph_helper.h"
+#include "typedef_graph.h"
 #include "biconnected_component.h"
 #include "pruning.h"
 #include "connected_component.h"
@@ -21,8 +22,6 @@ typedef std::pair<Hash, SkeletonPixel> Hash2Pixel;
 typedef std::pair<Hash, SkeletonPixelPtr> Hash2PixelPtr;
 typedef std::unordered_map<Hash, SkeletonPixel> MapHash2Pixel;
 typedef std::unordered_map<Hash, SkeletonPixelPtr> MapHash2PixelPtr;
-typedef Graph<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraph;
-typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphHelper;
 
 class Skeleton2Graph
 {
@@ -41,7 +40,9 @@ public:
     }
   }
 
-  ~Skeleton2Graph() {}
+  ~Skeleton2Graph() {
+    m_linear_cluster_list_.clear();
+  }
 
   void setFrame(const SkeletonFrame &frame)
   {
@@ -86,6 +87,7 @@ public:
     /*
     Step 2. Bridge Link Pruning
     */
+    //SkeletonGraphHelperPtr graph_helper_ptr(m_graph_helper_ptr_);
     PruningHelper pruning = PruningHelper(m_simplification_threshold_, m_graph_helper_ptr_);
     pruning.setup();
     pruning.searchPruneTarget();
@@ -105,7 +107,7 @@ public:
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
       /// node size is too small
-      if (hash_list_cc.size() < 2)
+      if (hash_list_cc.size() < 3)
       {
         for (Hash hash_cc_elem : hash_list_cc)
           m_graph_helper_ptr_->removeNode(hash_cc_elem);
@@ -125,6 +127,7 @@ public:
   */
   void clustering()
   {
+    //SkeletonGraphHelperPtr graph_helper_ptr(m_graph_helper_ptr_);
     GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_);
     cc.setup();
     cc.compute(ConnectedComponent::kDirectional, m_directional_threshold_);
@@ -191,7 +194,8 @@ private:
   {
     int32_t node_count = 0;
     std::unordered_map<Hash, std::vector<Hash>> temp_map_pixel_hash_to_neighbor;
-    m_graph_helper_ptr_ = new SkeletonGraphHelper(m_graph_initial_);
+    //m_graph_helper_ptr_ = new SkeletonGraphHelper(m_graph_initial_);
+    m_graph_helper_ptr_ = std::make_shared<SkeletonGraphHelper>(m_graph_initial_);
     for (int32_t v = 0; v < frame.image_height; v++)
     {
       for (int32_t u = 0; u < frame.image_width; u++)
@@ -272,7 +276,7 @@ private:
   MapHash2Pixel m_map_hash2pixel_initial_;
   MapHash2Index m_map_hash2index_initial_;
   SkeletonGraph m_graph_initial_;
-  SkeletonGraphHelper *m_graph_helper_ptr_;
+  SkeletonGraphHelperPtr m_graph_helper_ptr_;
 
   float m_simplification_threshold_;
   float m_directional_threshold_;

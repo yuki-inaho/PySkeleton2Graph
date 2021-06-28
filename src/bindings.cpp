@@ -28,7 +28,8 @@ PYBIND11_MODULE(pys2g, m)
         .def("size", &LinearCluster::size)
         .def("line", &LinearCluster::line)
         .def("points", &LinearCluster::points)
-        .def("edges", &LinearCluster::edges);
+        .def("edges", &LinearCluster::edges)
+        .def("indices_end_points", &LinearCluster::getEndPointIndices);
     py::class_<Skeleton2Graph>(m, "Skeleton2Graph")
         .def(
             py::init<const float &, const float &>(),

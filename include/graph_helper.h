@@ -2,7 +2,7 @@
 #define PYSKELETON2GRAPH_INCLUDE_GRAPH_HELPER_H_
 
 #include <map>
-#include "typedef.h"
+#include "typedef_pixel.h"
 #include "graph.h"
 
 // TODO: use smart ptr

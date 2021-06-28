@@ -7,10 +7,7 @@
 #include "pixel.h"
 #include "graph.h"
 #include "graph_helper.h"
-
-typedef Node<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphNode;
-typedef Edge<SkeletonPixel, EdgeSkeletonPixels> SkeletonGraphEdge;
-typedef GraphHelper<SkeletonPixel, EdgeSkeletonPixels> *SkeletonGraphHelperPtr;
+#include "typedef_graph.h"
 
 class PruningHelper
 {
