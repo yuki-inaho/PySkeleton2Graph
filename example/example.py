@@ -2,15 +2,16 @@ import cv2
 import numpy as np
 from pathlib import Path
 import time
-from pys2g import SkeletonFrame, Skeleton2Graph
+from typing import List
+from pys2g import SkeletonFrame, Skeleton2Graph, LinearCluster
 
 SCRIPT_DIR = str(Path().parent)
 
 
 def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1, draw_cluster_info=False):
     assert (len(image.shape) == 3) and (image.shape[-1] == 3)
+    draw_frame = image.copy()
     if (label is None) or (~draw_cluster_info):
-        draw_frame = image.copy()
         for edge in edges:
             p_from = points[edge[0]]
             p_to = points[edge[1]]
@@ -18,7 +19,6 @@ def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1,
         for point in points:
             cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
     else:
-        draw_frame = image.copy()
         label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
         for i, point in enumerate(points):
             cv2.circle(label_img_temp, (point[0], point[1]), circle_diameter, (label[i]), -1)
@@ -30,6 +30,51 @@ def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1,
         label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
         label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
         draw_frame[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
+
+    return draw_frame
+
+
+def draw_line_segments(image, line_segments: List[LinearCluster], circle_diameter=2, edge_bold=1, with_end_point=False, with_fitted_line=False):
+    n_segments = len(line_segments)
+    draw_frame = image.copy()
+    for label_m1, line_segment in enumerate(line_segments):
+        """
+        Draw line and points
+        """
+        points = line_segment.points()
+        edges = line_segment.edges()
+        label = label_m1 + 1
+        label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
+        for i, point in enumerate(points):
+            cv2.circle(label_img_temp, (point[0], point[1]), circle_diameter, label, -1)
+        for i, edge in enumerate(edges):
+            p_from = points[edge[0]]
+            p_to = points[edge[1]]
+            cv2.line(label_img_temp, (p_from[0], p_from[1]), (p_to[0], p_to[1]), label, edge_bold)
+        label_img_normalized = label_img_temp / n_segments
+        label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
+        label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
+        draw_frame[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
+
+        """
+        Draw end points
+        """
+        if with_end_point:
+            end_points = [points[end_point_index] for end_point_index in line_segment.indices_end_points()]
+            for point in end_points:
+                cv2.circle(draw_frame, (point[0], point[1]), int(circle_diameter * 1.5), (0, 0, 255), -1)
+
+        if with_fitted_line:
+            nx, ny, nconst = line_segment.line()
+            points_ary = np.asarray(points)
+            dist_mat = np.sqrt(np.sum((points_ary[np.newaxis, :, :] - points_ary[:, np.newaxis, :]) ** 2, axis=-1))
+            point_mean = points_ary.mean(0)
+            half_length_segment = np.max(dist_mat) / 2
+            line_direction = np.asarray([ny, -nx])
+            p1 = point_mean - line_direction * half_length_segment
+            p2 = point_mean + line_direction * half_length_segment
+            cv2.line(draw_frame, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 0, 0), 2)
+            cv2.line(draw_frame, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 255, 0), 1)
 
     return draw_frame
 
@@ -73,15 +118,18 @@ show_image(
 )
 """
 
-test = s2g.get_linear_clusters()
-[print(elem.size()) for elem in test]
-[print(elem.indices_end_points()) for elem in test]
-
+line_segments = s2g.get_linear_clusters()
+show_image(
+    draw_line_segments(
+        cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True
+    ),
+    scale=2.0,
+)
 """
 result_img = draw_graph(
     cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_simplified, edge_simplified, node_labels_simplified, edge_bold=2, draw_cluster_info=True
 )
 """
 
-del test
+del line_segments
 del s2g
