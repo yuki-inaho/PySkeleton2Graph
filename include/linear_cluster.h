@@ -2,12 +2,13 @@
 #define PYSKELETON2GRAPH_INCLUDE_LINEAR_CLUSTER_H_
 
 #if __has_include(<Eigen>)
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+    #include <Eigen/Dense>
+    #include <Eigen/SVD>
 #else
-#include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/SVD>
+    #include <eigen3/Eigen/Dense>
+    #include <eigen3/Eigen/SVD>
 #endif
+
 #include "pixel.h"
 #include "graph.h"
 #include "graph_helper.h"
@@ -88,6 +89,7 @@ private:
 class LinearCluster
 {
 public:
+    LinearCluster(){};
     LinearCluster(int32_t cluster_label, SkeletonGraphHelperPtr graph_helper) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
     ~LinearCluster(){};
 
@@ -113,6 +115,56 @@ public:
     LinearClusterType type() const
     {
         return m_cluster_type_;
+    }
+
+    /*
+    Return fitted line model parameters
+    */
+    std::vector<float> line()
+    {
+        std::vector<float> parameters{m_line_model_.n_x(), m_line_model_.n_y(), m_line_model_.n_constant()};
+        return parameters;
+    }
+
+    /*
+    Return skeleton point positions(px, py)
+    */
+    std::vector<std::vector<int32_t>> points()
+    {
+        std::vector<std::vector<int32_t>> points;
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
+        {
+            int32_t px, py;
+            node_ptr->data.getPosition(px, py);
+            std::vector<int32_t> point{px, py};
+            points.push_back(point);
+        }
+        return points;
+    }
+
+    /*
+    mainly for debug
+    */
+    std::vector<std::vector<int32_t>> edges()
+    {
+        std::unordered_map<Hash, int32_t> map_hash2index;
+        for (int32_t index = 0; index < m_node_list_.size(); index++)
+        {
+            map_hash2index.insert({m_node_list_[index]->data.getHash(), index});
+        }
+
+        std::vector<std::vector<int32_t>> edges;
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
+        {
+            for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
+            {
+                if (map_hash2index.count(edge_ptr->data.dst) == 0)
+                    continue;
+                std::vector<int32_t> edge{map_hash2index.at(edge_ptr->data.src), map_hash2index.at(edge_ptr->data.dst)};
+                edges.push_back(edge);
+            }
+        }
+        return edges;
     }
 
     std::shared_ptr<SkeletonGraphNode> access(int32_t index)
@@ -165,31 +217,6 @@ public:
         }
     }
 
-    float getMeanSquaredError()
-    {
-        float sum_error = 0;
-        int32_t n_points = m_node_list_.size();
-        for (int32_t i = 0; i < n_points; i++)
-        {
-            int32_t px, py;
-            m_node_list_[i]->data.getPosition(px, py);
-            sum_error += m_line_model_.get_fit_error(px, py);
-        }
-        return sum_error / n_points;
-    }
-
-    std::vector<float> getLinePrameters()
-    {
-        std::vector<float> parameters{m_line_model_.n_x(), m_line_model_.n_y(), m_line_model_.n_constant()};
-        return parameters;
-    }
-
-    void normal(float &n_x, float &n_y)
-    {
-        n_x = m_line_model_.n_x();
-        n_y = m_line_model_.n_y();
-    }
-
     float getDiffDegree(LinearCluster *line_model_compare)
     {
         float n_this_x = m_line_model_.n_x();
@@ -210,27 +237,33 @@ public:
         //return std::acos(inner_product_n) / M_PI * 180.0;
     }
 
-    /*
-        not absoluted
-    */
-    float calcPointProjectionError(const float &p_x, const float &p_y)
+    float getFittingError(const float &p_x, const float &p_y)
     {
-        float n_x = m_line_model_.n_x();
-        float n_y = m_line_model_.n_y();
-        float c = m_line_model_.n_constant();
-        return n_x * p_x + n_y * p_y + c;
+        return m_line_model_.get_fit_error(p_x, p_y);
     }
 
-    float calcTwoPointDistanceOnLine(const float &p0_x, const float &p0_y, const float &p1_x, const float &p1_y)
+    float getMeanSquaredError()
     {
-        float n_x = m_line_model_.n_x();
-        float n_y = m_line_model_.n_y();
-        float diff_x = p1_x - p0_x;
-        float diff_y = p1_y - p0_y;
-        return n_x * diff_x + n_y * diff_y;
+        float sum_error = 0;
+
+        // TODO: Use reduce
+        int32_t n_points = m_node_list_.size();
+        for (int32_t i = 0; i < n_points; i++)
+        {
+            int32_t px, py;
+            m_node_list_[i]->data.getPosition(px, py);
+            sum_error += getFittingError(px, py);
+        }
+        return sum_error / n_points;
     }
 
 private:
+    void normal(float &n_x, float &n_y)
+    {
+        n_x = m_line_model_.n_x();
+        n_y = m_line_model_.n_y();
+    }
+
     void fitLineBySVD(float &n_x_output, float &n_y_output, float &constant_output)
     {
         Matrix2DPoints mat_points;

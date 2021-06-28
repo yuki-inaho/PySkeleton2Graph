@@ -120,7 +120,10 @@ public:
     m_edge_list_output_ = m_graph_helper_ptr_->getEdges();
   }
 
-  void computeDirectionalConnectedComponent()
+  /*
+  Execute directional connected component labelling
+  */
+  void clustering()
   {
     GraphConnectedComponent cc = GraphConnectedComponent(m_graph_helper_ptr_);
     cc.setup();
@@ -130,7 +133,7 @@ public:
     m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
     int32_t n_cluster = hash_list_each_cc.size();
 
-    // Setup for cluster merging
+    // Generate LinearCluster instances
     int32_t cluster_index = 1;
     m_linear_cluster_list_.clear();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
@@ -144,11 +147,17 @@ public:
       cluster_index++;
     }
 
-    // Fit 2d points to a line 
+    // Fit 2D points to a line each clusters
     int32_t n_clusters = m_linear_cluster_list_.size();
-    for (int32_t i = 0; i< n_clusters; i++){
+    for (int32_t i = 0; i < n_clusters; i++)
+    {
       m_linear_cluster_list_[i].fitLine();
     }
+  }
+
+  std::vector<LinearCluster> getLinearClusters() const
+  {
+    return m_linear_cluster_list_;
   }
 
   std::vector<int32_t> getNodeLabels() const
@@ -156,12 +165,12 @@ public:
     return m_node_labels_output_;
   }
 
-  std::vector<std::vector<int32_t>> getNodePositions()
+  std::vector<std::vector<int32_t>> getNodePositions() const
   {
     return m_node_position_list_output_;
   }
 
-  std::vector<std::vector<int32_t>> getEdges()
+  std::vector<std::vector<int32_t>> getEdges() const
   {
     return m_edge_list_output_;
   }

@@ -7,16 +7,16 @@ from pys2g import SkeletonFrame, Skeleton2Graph
 SCRIPT_DIR = str(Path().parent)
 
 
-def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1):
+def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1, draw_cluster_info=False):
     assert (len(image.shape) == 3) and (image.shape[-1] == 3)
-    if label is None:
+    if (label is None) or (~draw_cluster_info):
         draw_frame = image.copy()
-        for point in points:
-            cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
         for edge in edges:
             p_from = points[edge[0]]
             p_to = points[edge[1]]
             cv2.line(draw_frame, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (255, 0, 0), edge_bold)
+        for point in points:
+            cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
     else:
         draw_frame = image.copy()
         label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
@@ -43,14 +43,13 @@ def show_image(image, title="image", scale=1.0):
 
 skeleton = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 frame = SkeletonFrame(skeleton)
-s2g = Skeleton2Graph(simplification_threshold=20, directional_threshold=30)
+s2g = Skeleton2Graph(simplification_threshold=15, directional_threshold=20)
 start = time.time()
 s2g.set_frame(frame)
 node_init = s2g.get_node_positions()
 edge_init = s2g.get_edges()
 s2g.simplify()
-s2g.compute_directional_connected_component()
-#s2g.merge_clusters()
+s2g.clustering()
 node_labels_simplified = s2g.get_node_labels()
 node_simplified = s2g.get_node_positions()
 edge_simplified = s2g.get_edges()
@@ -59,19 +58,8 @@ print(end - start)
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
 
-#show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
-
+# show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
 """
-show_image(
-    draw_graph(
-        cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
-        node_simplified,
-        edge_simplified
-    ),
-    scale=3.0,
-)
-"""
-
 show_image(
     draw_graph(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR),
@@ -79,6 +67,8 @@ show_image(
         edge_simplified,
         node_labels_simplified,
         edge_bold=2,
+        draw_cluster_info=True
     ),
     scale=3.0,
 )
+"""
