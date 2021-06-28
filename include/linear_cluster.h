@@ -226,16 +226,7 @@ public:
         line_model_compare->normal(n_comp_x, n_comp_y);
         float inner_product_n = n_this_x * n_comp_x + n_this_y * n_comp_y;
 
-        /// TODO: check whether it is valid or not
-        if (inner_product_n >= 0)
-        {
-            return std::acos(inner_product_n) / M_PI * 180.0;
-        }
-        else
-        {
-            return 180 - std::acos(inner_product_n) / M_PI * 180.0;
-        }
-        //return std::acos(inner_product_n) / M_PI * 180.0;
+        return std::acos(inner_product_n) / M_PI * 180.0;
     }
 
     float getFittingError(const float &p_x, const float &p_y)
