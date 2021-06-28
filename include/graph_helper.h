@@ -15,9 +15,9 @@ public:
     GraphHelper(Graph<ND, LD> &graph) : graph(graph){};
     void addNode(Hash hash, ND data)
     {
-        Node<ND, LD> *node_ptr = graph.addNode(data);
-        m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
-        m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
+        NodePtr<ND, LD> node_ptr = graph.addNode(data);
+        m_map_hash_to_node_ptr_.insert(std::pair<Hash, NodePtr<ND, LD>>(hash, node_ptr));
+        m_map_node_ptr_to_hash_.insert(std::pair<NodePtr<ND, LD>, Hash>(node_ptr, hash));
     }
 
     /*
@@ -51,7 +51,7 @@ public:
             removeEdge(hash_neighbor, hash);
         }
 
-        Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash);
+        NodePtr<ND, LD> node_ptr = m_map_hash_to_node_ptr_.at(hash);
         m_map_hash_to_node_ptr_.erase(hash);
         m_map_node_ptr_to_hash_.erase(node_ptr);
         delete node_ptr;
@@ -59,7 +59,7 @@ public:
 
     void addEdge(LD edge_attributes, Hash hash_source, Hash hash_destination)
     {
-        Edge<ND, LD> *edge_ptr = graph.addEdge(
+        EdgePtr<ND, LD> edge_ptr = graph.addEdge(
             edge_attributes,
             m_map_hash_to_node_ptr_.at(hash_source),
             m_map_hash_to_node_ptr_.at(hash_destination));
@@ -92,9 +92,9 @@ public:
 
         for (Hash hash_node : hash_node_set)
         {
-            Node<ND, LD> *node_ptr = m_map_hash_to_node_ptr_.at(hash_node);
-            std::vector<Node<ND, LD> *> neighbor_node_ptr_list = getNeighborNodesPtr(hash_node);
-            for (Node<ND, LD> *neighbor_node_ptr : neighbor_node_ptr_list)
+            NodePtr<ND, LD> node_ptr = m_map_hash_to_node_ptr_.at(hash_node);
+            std::vector<NodePtr<ND, LD>> neighbor_node_ptr_list = getNeighborNodesPtr(hash_node);
+            for (NodePtr<ND, LD> neighbor_node_ptr : neighbor_node_ptr_list)
             {
                 removeEdge(node_ptr->data.getHash(), neighbor_node_ptr->data.getHash());
                 removeEdge(neighbor_node_ptr->data.getHash(), node_ptr->data.getHash());
@@ -131,17 +131,17 @@ public:
         return hash_list;
     }
 
-    Node<ND, LD> *getNodePtr(const Hash &hash) const
+    NodePtr<ND, LD> getNodePtr(const Hash &hash) const
     {
         return m_map_hash_to_node_ptr_.at(hash);
     }
 
-    Edge<ND, LD> *getEdgePtr(const Hash &hash_source, const Hash &hash_destination) const
+    EdgePtr<ND, LD> getEdgePtr(const Hash &hash_source, const Hash &hash_destination) const
     {
         return m_map_hash_pair_to_edge_ptr_.at({hash_source, hash_destination});
     }
 
-    std::vector<Node<ND, LD> *> getNeighborNodesPtr(const Hash &hash) const
+    std::vector<NodePtr<ND, LD>> getNeighborNodesPtr(const Hash &hash) const
     {
         return m_map_hash_to_node_ptr_.at(hash)->getNeighborNodes();
     }
@@ -149,8 +149,8 @@ public:
     std::vector<Hash> getNeighborHashList(const Hash &hash) const
     {
         std::vector<Hash> neighbor_hash_list;
-        std::vector<Node<ND, LD> *> neighbor_ptr_list = m_map_hash_to_node_ptr_.at(hash)->getNeighborNodes();
-        for (Node<ND, LD> *neighbor_ptr : neighbor_ptr_list)
+        std::vector<NodePtr<ND, LD>> neighbor_ptr_list = m_map_hash_to_node_ptr_.at(hash)->getNeighborNodes();
+        for (NodePtr<ND, LD> neighbor_ptr : neighbor_ptr_list)
         {
             neighbor_hash_list.push_back(m_map_node_ptr_to_hash_.at(neighbor_ptr));
         }
@@ -168,7 +168,7 @@ public:
         while (!flag_skip_validation)
         {
             flag_skip_validation = true;
-            for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+            for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
             {
                 // Update node information
                 int8_t connectivity = calcNodeConnectivity(node_ptr);
@@ -187,18 +187,18 @@ public:
         m_map_hash_to_node_ptr_.clear();
         m_map_node_ptr_to_hash_.clear();
         m_map_hash_pair_to_edge_ptr_.clear();
-        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
         {
             // Update node information
             node_ptr->data.setConnectivity(calcNodeConnectivity(node_ptr));
             node_ptr->data.setPointType();
 
             Hash hash = node_ptr->data.getHash();
-            m_map_hash_to_node_ptr_.insert(std::pair<Hash, Node<ND, LD> *>(hash, node_ptr));
-            m_map_node_ptr_to_hash_.insert(std::pair<Node<ND, LD> *, Hash>(node_ptr, hash));
+            m_map_hash_to_node_ptr_.insert(std::pair<Hash, NodePtr<ND, LD>>(hash, node_ptr));
+            m_map_node_ptr_to_hash_.insert(std::pair<NodePtr<ND, LD>, Hash>(node_ptr, hash));
         }
 
-        for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
+        for (EdgePtr<ND, LD> edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
         {
             // Update node information
             edge_ptr->data.resetPixelPair(edge_ptr->from->data, edge_ptr->to->data);
@@ -220,10 +220,10 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
         {
-            std::vector<Node<ND, LD> *> neighbor_ptr_list = node_ptr->getNeighborNodes();
-            for (Node<ND, LD> *neighbor_ptr : neighbor_ptr_list)
+            std::vector<NodePtr<ND, LD>> neighbor_ptr_list = node_ptr->getNeighborNodes();
+            for (NodePtr<ND, LD> neighbor_ptr : neighbor_ptr_list)
             {
                 Hash hash_source = node_ptr->data.getHash();
                 Hash hash_destination = neighbor_ptr->data.getHash();
@@ -244,7 +244,7 @@ public:
         std::unordered_map<Hash, int32_t> map_hash2index;
         int32_t node_index = 0;
         m_node_position_list_.clear();
-        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
         {
             int32_t x_pos, y_pos;
             node_ptr->data.getPosition(x_pos, y_pos);
@@ -255,7 +255,8 @@ public:
         }
 
         // Reset Labels
-        if(m_node_label_list_.size()==0){
+        if (m_node_label_list_.size() == 0)
+        {
             m_node_label_list_.clear();
             m_node_label_list_.resize(m_node_position_list_.size());
             std::fill(m_node_label_list_.begin(), m_node_label_list_.end(), 0);
@@ -263,7 +264,7 @@ public:
 
         // Reset Edge information
         m_edge_list_.clear();
-        for (Edge<ND, LD> *edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
+        for (EdgePtr<ND, LD> edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next)
         {
             std::vector<int32_t> edge_info{map_hash2index[edge_ptr->data.src], map_hash2index[edge_ptr->data.dst]};
             m_edge_list_.push_back(edge_info);
@@ -285,12 +286,12 @@ public:
         return m_edge_list_;
     }
 
-    void setConnectedComponentLabels(const std::vector<std::vector<Hash>>& hash_list_each_cc)
+    void setConnectedComponentLabels(const std::vector<std::vector<Hash>> &hash_list_each_cc)
     {
         m_node_label_list_.clear();
         std::unordered_map<Hash, int32_t> map_hash2index;
         int32_t node_index = 0;
-        for (Node<ND, LD> *node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
+        for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
         {
             map_hash2index.insert({node_ptr->data.getHash(), node_index});
             node_index++;
@@ -310,19 +311,19 @@ public:
     }
 
 private:
-    int8_t calcNodeConnectivity(const Node<ND, LD> *node_ptr)
+    int8_t calcNodeConnectivity(const NodePtr<ND, LD> node_ptr)
     {
         int8_t connectivity = 0;
-        for (Edge<ND, LD> *x = node_ptr->firstOut; x; x = x->nextInFrom)
+        for (EdgePtr<ND, LD> x = node_ptr->firstOut; x; x = x->nextInFrom)
         {
             connectivity++;
         }
         return connectivity;
     }
 
-    std::unordered_map<Hash, Node<ND, LD> *> m_map_hash_to_node_ptr_;
-    std::unordered_map<Node<ND, LD> *, Hash> m_map_node_ptr_to_hash_;
-    std::map<std::pair<Hash, Hash>, Edge<ND, LD> *> m_map_hash_pair_to_edge_ptr_;
+    std::unordered_map<Hash, NodePtr<ND, LD>> m_map_hash_to_node_ptr_;
+    std::unordered_map<NodePtr<ND, LD>, Hash> m_map_node_ptr_to_hash_;
+    std::map<std::pair<Hash, Hash>, EdgePtr<ND, LD>> m_map_hash_pair_to_edge_ptr_;
 
     // For output
     std::vector<int32_t> m_node_label_list_;

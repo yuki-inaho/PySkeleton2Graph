@@ -5,20 +5,20 @@
 #include <unordered_map>
 #include "typedef.h"
 
-template <typename ND, typename LD>
-struct Node;
-template <typename ND, typename LD>
-struct Edge;
-template <typename ND, typename LD>
-struct Graph;
+template <typename ND, typename LD> struct Node;
+template <typename ND, typename LD> struct Edge;
+template <typename ND, typename LD> struct Graph;
+
+template <typename ND, typename LD> using NodePtr = Node<ND, LD> *;
+template <typename ND, typename LD> using EdgePtr = Edge<ND, LD> *;
 
 template <typename ND, typename LD>
 struct Node
 {
     ND data;
     Graph<ND, LD> &graph;
-    Node<ND, LD> *prev, *next;
-    Edge<ND, LD> *firstIn, *lastIn, *firstOut, *lastOut;
+    NodePtr<ND, LD> prev, next;
+    EdgePtr<ND, LD> firstIn, lastIn, firstOut, lastOut;
 
     Node(ND data, Graph<ND, LD> &graph)
         : data(std::move(data)),
@@ -62,37 +62,15 @@ struct Node
     This function is Outgoing-ward neighbor node getter function,
     But if graph is undirected, this function returns all neighbor list.
     */
-    std::vector<Node<ND, LD> *> getNeighborNodes()
+    std::vector<NodePtr<ND, LD>> getNeighborNodes()
     {
-        std::vector<Node<ND, LD> *> neighbor_node_list;
-        for (Edge<ND, LD> *x = firstOut; x; x = x->nextInFrom)
+        std::vector<NodePtr<ND, LD>> neighbor_node_list;
+        for (EdgePtr<ND, LD> x = firstOut; x; x = x->nextInFrom)
         {
             neighbor_node_list.push_back(x->to);
         }
         std::unique(neighbor_node_list.begin(), neighbor_node_list.end());
         return neighbor_node_list;
-    }
-
-    template <typename CBack>
-    bool forEachOutgoingEdge(CBack cb)
-    {
-        for (Edge<ND, LD> *x = firstOut; x; x = x->nextInFrom)
-        {
-            if (!cb(x))
-                return false;
-        }
-        return true;
-    }
-
-    template <typename CBack>
-    bool forEachIncomingEdge(CBack cb)
-    {
-        for (Edge<ND, LD> *x = firstIn; x; x = x->nextInTo)
-        {
-            if (!cb(x))
-                return false;
-        }
-        return true;
     }
 };
 
@@ -100,13 +78,13 @@ template <typename ND, typename LD>
 struct Edge
 {
     LD data;
-    Node<ND, LD> *from, *to;
-    Edge<ND, LD> *prev, *next, *prevInFrom, *nextInFrom, *prevInTo, *nextInTo;
+    NodePtr<ND, LD> from, to;
+    EdgePtr<ND, LD> prev, next, prevInFrom, nextInFrom, prevInTo, nextInTo;
 
     /*
     Assume from->graph == to->graph
     */
-    Edge(LD data, Node<ND, LD> *from, Node<ND, LD> *to)
+    Edge(LD data, NodePtr<ND, LD> from, NodePtr<ND, LD> to)
         : data(std::move(data)),
           from(from), to(to),
           prev(from->graph.lastEdge), next(nullptr),
@@ -135,7 +113,7 @@ struct Edge
         from->graph.m_num_edges_++;
     }
 
-    Edge(Node<ND, LD> *from, Node<ND, LD> *to)
+    Edge(NodePtr<ND, LD> from, NodePtr<ND, LD> to)
         : Edge<ND, LD>(LD(), from, to)
     {
         from->graph.m_num_edges_++;
@@ -182,8 +160,8 @@ struct Graph
     int32_t m_num_nodes_;
     int32_t m_num_edges_;
 
-    Node<ND, LD> *firstNode, *lastNode;
-    Edge<ND, LD> *firstEdge, *lastEdge;
+    NodePtr<ND, LD> firstNode, lastNode;
+    EdgePtr<ND, LD> firstEdge, lastEdge;
 
     Graph()
         : firstNode(nullptr), lastNode(nullptr),
@@ -201,10 +179,10 @@ struct Graph
     Graph(Graph<ND, LD> &&) = delete;
     Graph<ND, LD> &operator=(const Graph<ND, LD> &) = delete;
 
-    Node<ND, LD> *addNode(ND data) { return new Node<ND, LD>(data, *this); }
-    Edge<ND, LD> *addEdge(LD data, Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(data, from, to); }
-    Node<ND, LD> *addNode() { return new Node<ND, LD>(*this); }
-    Edge<ND, LD> *addEdge(Node<ND, LD> *from, Node<ND, LD> *to) { return new Edge<ND, LD>(from, to); }
+    NodePtr<ND, LD> addNode(ND data) { return new Node<ND, LD>(data, *this); }
+    EdgePtr<ND, LD> addEdge(LD data, NodePtr<ND, LD> from, NodePtr<ND, LD> to) { return new Edge<ND, LD>(data, from, to); }
+    NodePtr<ND, LD> addNode() { return new Node<ND, LD>(*this); }
+    EdgePtr<ND, LD> addEdge(NodePtr<ND, LD> from, NodePtr<ND, LD> to) { return new Edge<ND, LD>(from, to); }
 
     int32_t get_number_of_nodes() const
     {
@@ -214,28 +192,6 @@ struct Graph
     int32_t get_number_of_edges() const
     {
         return m_num_edges_;
-    }
-
-    template <typename CBack>
-    bool forEachNode(CBack cb)
-    {
-        for (Node<ND, LD> *n = firstNode; n; n = n->next)
-        {
-            if (!cb(n))
-                return false;
-        }
-        return true;
-    }
-
-    template <typename CBack>
-    bool forEachEdge(CBack cb)
-    {
-        for (Edge<ND, LD> *L = firstEdge; L; L = L->next)
-        {
-            if (!cb(L))
-                return false;
-        }
-        return true;
     }
 };
 
