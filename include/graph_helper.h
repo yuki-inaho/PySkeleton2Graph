@@ -5,6 +5,7 @@
 #include "typedef.h"
 #include "graph.h"
 
+// TODO: use smart ptr
 template <typename ND, typename LD>
 class GraphHelper
 {

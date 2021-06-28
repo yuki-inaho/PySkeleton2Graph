@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "typedef.h"
 
+// TODO: use smart ptr
 template <typename ND, typename LD> struct Node;
 template <typename ND, typename LD> struct Edge;
 template <typename ND, typename LD> struct Graph;

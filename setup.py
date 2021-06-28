@@ -7,6 +7,12 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 
+def parse_requirements_file(filename):
+    with open(filename, encoding="utf-8") as fid:
+        requires = [l.strip() for l in fid.readlines() if l]
+    return requires
+
+
 # https://github.com/pybind/cmake_example/blob/c45488dfdff04eec43fd2e59fcf9d9cd21b83880/setup.py
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
@@ -41,10 +47,12 @@ class CMakeBuild(build_ext):
         subprocess.check_call(["cmake", "--build", "."] + build_args, cwd=self.build_temp)
 
 
+INSTALL_REQUIRES = parse_requirements_file("requirements.txt")
 setup(
     name="pys2g",
     version="1.0.0",
     cmdclass={"build_ext": CMakeBuild},
     ext_modules=[CMakeExtension("pys2g")],
+    install_requires=INSTALL_REQUIRES,
     zip_safe=False,
 )
