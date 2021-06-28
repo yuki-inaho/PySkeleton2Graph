@@ -113,7 +113,7 @@ print(f"num edge(simplified): {len(edge_simplified)}")
 """
 Output results
 """
-write_image(skeleton, f"{SCRIPT_DIR}/results/input.png")
+write_image(skeleton, f"{SCRIPT_DIR}/results/input.png", scale=2)
 # show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
 
 # Graph extraction result
@@ -121,7 +121,7 @@ write_image(skeleton, f"{SCRIPT_DIR}/results/input.png")
 write_image(
     draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_simplified, edge_simplified, node_labels_simplified, edge_bold=2),
     f"{SCRIPT_DIR}/results/graph.png",
-    scale=4,
+    scale=2,
 )
 
 # Postprocessing result
@@ -132,7 +132,7 @@ write_image(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True
     ),
     f"{SCRIPT_DIR}/results/parsed.png",
-    scale=4.0,
+    scale=2.0,
 )
 
 del line_segments
