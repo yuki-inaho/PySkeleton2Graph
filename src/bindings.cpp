@@ -36,7 +36,7 @@ PYBIND11_MODULE(pys2g, m)
             py::arg("simplification_threshold"),
             py::arg("directional_threshold"))
         .def("set_frame", &Skeleton2Graph::setFrame)
-        .def("simplify", &Skeleton2Graph::Simplification)
+        .def("simplify", &Skeleton2Graph::simplify)
         .def("clustering", &Skeleton2Graph::clustering)
         .def("get_linear_clusters", &Skeleton2Graph::getLinearClusters)
         .def("get_node_labels", &Skeleton2Graph::getNodeLabels)

@@ -218,17 +218,6 @@ public:
         }
     }
 
-    float getDiffDegree(LinearCluster *line_model_compare)
-    {
-        float n_this_x = m_line_model_.n_x();
-        float n_this_y = m_line_model_.n_y();
-        float n_comp_x, n_comp_y;
-        line_model_compare->normal(n_comp_x, n_comp_y);
-        float inner_product_n = n_this_x * n_comp_x + n_this_y * n_comp_y;
-
-        return std::acos(inner_product_n) / M_PI * 180.0;
-    }
-
     float getFittingError(const float &p_x, const float &p_y)
     {
         return m_line_model_.get_fit_error(p_x, p_y);

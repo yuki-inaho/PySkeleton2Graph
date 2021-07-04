@@ -52,7 +52,7 @@ public:
     initializeNodeList(frame);
   }
 
-  void Simplification()
+  void simplify()
   {
     /*
     Step 1. Make junction points unique
