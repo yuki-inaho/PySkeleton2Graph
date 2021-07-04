@@ -29,7 +29,6 @@ public:
     {
         int32_t n_node = m_graph_helper_ptr_->size();
         std::vector<bool> is_visited(n_node, false);
-        // TODO: reduce line
         for (Hash hash_end_point : m_hash_list_end_points_)
         {
             std::vector<Hash> connected_component_list;
@@ -60,6 +59,9 @@ public:
             }
             m_connected_component_list_.push_back(connected_component_list);
         }
+
+        m_graph_helper_ptr_->setConnectedComponentLabels(m_connected_component_list_);
+        resetConnectedComponentLabels();
     }
 
     std::vector<std::vector<Hash>> getConnectedComponent()
@@ -89,7 +91,7 @@ private:
     }
 
     /*
-        unit is degree
+        The basic measure unit is degree on below function
     */
     float get_edge_directional_difference(const Hash &hash_ancester, const Hash &hash_source, const Hash &hash_target)
     {
@@ -158,39 +160,69 @@ private:
             }
         }
         return;
-        /*
-        for (Hash hash_n : neighbor_hash_list_v)
-        {
-            if (hash_n != hash_parent)
-            {
-                if (!check_directional_condition(hash_parent, hash_v, hash_n, directional_threshold))
-                    continue;
-                search_connected_component_directional(hash_n, hash_v, is_visited, connected_component_list, directional_threshold);
-            }
-        }
-        */
     }
 
     void setPointInformation()
     {
         m_hash_list_end_points_.clear();
+        m_hash_list_junction_points_.clear();
         m_hash_list_whole_points_.clear();
         std::vector<Hash> hash_list_temp = m_graph_helper_ptr_->getHashList();
-        std::copy_if(
-            hash_list_temp.begin(), hash_list_temp.end(),
-            std::back_inserter(m_hash_list_end_points_),
-            [&](Hash hash)
+        for (Hash hash_tmp : hash_list_temp)
+        {
+            if (m_graph_helper_ptr_->getNodePtr(hash_tmp)->data.getPointType() == PointType::kEndPoint)
             {
-                return m_graph_helper_ptr_->getNodePtr(hash)->data.getPointType() == PointType::kEndPoint;
-            });
-        std::copy(
-            hash_list_temp.begin(), hash_list_temp.end(),
-            std::back_inserter(m_hash_list_whole_points_));
+                m_hash_list_end_points_.push_back(hash_tmp);
+            }
+            else if (m_graph_helper_ptr_->getNodePtr(hash_tmp)->data.getPointType() == PointType::kJunctionPoint)
+            {
+                m_hash_list_junction_points_.push_back(hash_tmp);
+            }
+            m_hash_list_whole_points_.push_back(hash_tmp);
+        }
+    }
+
+    void resetConnectedComponentLabels()
+    {
+        std::vector<int32_t> connected_component_list;
+        std::vector<int32_t> label_list, label_list_uniqued;
+
+        // Extract uniqued cluster labels
+        std::transform(
+            m_hash_list_whole_points_.begin(), m_hash_list_whole_points_.end(), std::back_inserter(label_list),
+            [&](const Hash &hash)
+            { return m_graph_helper_ptr_->getNodePtr(hash)->data.getLabel(); });
+        std::copy(label_list.begin(), label_list.end(), std::back_inserter(label_list_uniqued));
+        label_list_uniqued.erase(std::unique(label_list_uniqued.begin(), label_list_uniqued.end()), label_list_uniqued.end());
+        std::sort(label_list_uniqued.begin(), label_list_uniqued.end());
+        int32_t label_last_index = label_list_uniqued.back();
+        if (label_last_index != m_connected_component_list_.size())
+        {
+            std::cerr << "Cluster labels are not correcly continuously assigned." << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+
+        // Set hash list with sorted cluster labels
+        std::vector<std::vector<Hash>> connected_component_list_new;
+        for (int32_t label_m1 : label_list_uniqued)
+        { // cluster label is 1-start.
+            std::vector<int32_t> hash_list_new_cluster;
+            connected_component_list_new.push_back(hash_list_new_cluster);
+        }
+
+        // Assign new label to each nodes
+        for (Hash hash : m_hash_list_whole_points_)
+        {
+            int32_t cluster_label = m_graph_helper_ptr_->getNodePtr(hash)->data.getLabel();
+            connected_component_list_new[cluster_label - 1].push_back(hash);
+        }
+        m_graph_helper_ptr_->setConnectedComponentLabels(connected_component_list_new);
     }
 
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     SkeletonGraphHelperPtr m_graph_helper_ptr_;
     std::vector<Hash> m_hash_list_end_points_;
+    std::vector<Hash> m_hash_list_junction_points_;
     std::vector<Hash> m_hash_list_whole_points_;
     std::vector<std::vector<Hash>> m_connected_component_list_;
 };
