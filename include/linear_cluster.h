@@ -194,7 +194,6 @@ public:
     {
         if (size() == 1)
         {
-            std::cerr << "Number of cluster point is too small to fit 2D-line" << std::endl;
             int32_t px, py;
             m_node_list_[0]->data.getPosition(px, py);
             m_line_model_.set(1.0, 0, px, py);

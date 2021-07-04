@@ -61,7 +61,6 @@ public:
         }
 
         m_graph_helper_ptr_->setConnectedComponentLabels(m_connected_component_list_);
-        resetConnectedComponentLabels();
     }
 
     std::vector<std::vector<Hash>> getConnectedComponent()
@@ -192,9 +191,10 @@ private:
             m_hash_list_whole_points_.begin(), m_hash_list_whole_points_.end(), std::back_inserter(label_list),
             [&](const Hash &hash)
             { return m_graph_helper_ptr_->getNodePtr(hash)->data.getLabel(); });
+
         std::copy(label_list.begin(), label_list.end(), std::back_inserter(label_list_uniqued));
-        label_list_uniqued.erase(std::unique(label_list_uniqued.begin(), label_list_uniqued.end()), label_list_uniqued.end());
         std::sort(label_list_uniqued.begin(), label_list_uniqued.end());
+        label_list_uniqued.erase(std::unique(label_list_uniqued.begin(), label_list_uniqued.end()), label_list_uniqued.end());
         int32_t label_last_index = label_list_uniqued.back();
         if (label_last_index != m_connected_component_list_.size())
         {
@@ -202,21 +202,28 @@ private:
             std::exit(EXIT_FAILURE);
         }
 
-        // Set hash list with sorted cluster labels
+        /// Set hash list with sorted cluster labels
         std::vector<std::vector<Hash>> connected_component_list_new;
+
+        /// cluster label is 1-start.
         for (int32_t label_m1 : label_list_uniqued)
-        { // cluster label is 1-start.
-            std::vector<int32_t> hash_list_new_cluster;
+        {
+            std::vector<Hash> hash_list_new_cluster;
             connected_component_list_new.push_back(hash_list_new_cluster);
         }
 
-        // Assign new label to each nodes
+        /// Assign new label to each nodes
         for (Hash hash : m_hash_list_whole_points_)
         {
             int32_t cluster_label = m_graph_helper_ptr_->getNodePtr(hash)->data.getLabel();
             connected_component_list_new[cluster_label - 1].push_back(hash);
         }
-        m_graph_helper_ptr_->setConnectedComponentLabels(connected_component_list_new);
+
+        m_connected_component_list_.clear();
+        std::copy(
+            connected_component_list_new.begin(), connected_component_list_new.end(),
+            std::back_inserter(m_connected_component_list_));
+        m_graph_helper_ptr_->setConnectedComponentLabels(m_connected_component_list_);
     }
 
     std::unordered_map<Hash, int32_t> m_map_hash2index_;

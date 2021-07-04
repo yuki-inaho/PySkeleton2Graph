@@ -133,7 +133,6 @@ public:
     cc.setup();
     cc.compute(ConnectedComponent::kDirectional, m_directional_threshold_);
     std::vector<std::vector<Hash>> hash_list_each_cc = cc.getConnectedComponent();
-    m_graph_helper_ptr_->setConnectedComponentLabels(hash_list_each_cc);
     m_node_labels_output_ = m_graph_helper_ptr_->getNodeLabels();
     int32_t n_cluster = hash_list_each_cc.size();
 
