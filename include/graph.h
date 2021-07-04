@@ -97,6 +97,7 @@ struct Node
         {
             neighbor_node_list.push_back(x->to);
         }
+        std::sort(neighbor_node_list.begin(),neighbor_node_list.end());
         neighbor_node_list.erase(std::unique(neighbor_node_list.begin(), neighbor_node_list.end()), neighbor_node_list.end());
         return neighbor_node_list;
     }
