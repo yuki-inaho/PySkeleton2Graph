@@ -40,7 +40,8 @@ public:
     }
   }
 
-  ~Skeleton2Graph() {
+  ~Skeleton2Graph()
+  {
     m_linear_cluster_list_.clear();
   }
 
@@ -141,7 +142,7 @@ public:
     m_linear_cluster_list_.clear();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
-      LinearCluster linear_cluster(cluster_index, m_graph_helper_ptr_);
+      LinearCluster linear_cluster(cluster_index);
       for (Hash hash : hash_list_cc)
       {
         linear_cluster.addNodePtr(m_graph_helper_ptr_->getNodePtr(hash));
@@ -154,7 +155,7 @@ public:
     int32_t n_clusters = m_linear_cluster_list_.size();
     for (int32_t i = 0; i < n_clusters; i++)
     {
-      m_linear_cluster_list_[i].fitLine();
+      m_linear_cluster_list_[i].update(m_graph_helper_ptr_);
     }
   }
 

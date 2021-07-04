@@ -88,7 +88,7 @@ class LinearCluster
 {
 public:
     LinearCluster(){};
-    LinearCluster(int32_t cluster_label, const SkeletonGraphHelperPtr graph_helper) : m_parent_(this), m_cluster_label_(cluster_label), m_graph_helper_ptr_(graph_helper), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
+    LinearCluster(int32_t cluster_label) : m_parent_(this), m_cluster_label_(cluster_label), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
     ~LinearCluster(){};
 
     int32_t label() const
@@ -118,7 +118,7 @@ public:
     /*
     Return fitted line model parameters
     */
-    std::vector<float> line()
+    std::vector<float> line() const
     {
         std::vector<float> parameters{m_line_model_.n_x(), m_line_model_.n_y(), m_line_model_.n_constant()};
         return parameters;
@@ -129,53 +129,50 @@ public:
     */
     std::vector<std::vector<int32_t>> points()
     {
-        std::vector<std::vector<int32_t>> points;
+        return m_point_list_;
+    }
+
+    /*
+    Update intrinsic infromation of each clusters, after addNode() calling
+    */
+    void update(SkeletonGraphHelperPtr graph_helper_ptr)
+    {
+        /// Set 2D point (corresponded to a node) information in the cluster
+        m_point_list_.clear();
         for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
         {
             int32_t px, py;
             node_ptr->data.getPosition(px, py);
             std::vector<int32_t> point{px, py};
-            points.push_back(point);
+            m_point_list_.push_back(point);
         }
-        return points;
-    }
 
-    std::vector<int32_t> getEndPointIndices() const
-    {
-        std::vector<int32_t> indices;
-        int32_t index = 0;
-        for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
-        {
-            if (isEndPoint(node_ptr))
-                indices.push_back(index);
-            index++;
-        }
-        return indices;
-    }
-
-    /*
-    mainly for debug
-    */
-    std::vector<std::vector<int32_t>> edges() const
-    {
-        std::unordered_map<Hash, int32_t> map_hash2index;
+        /// Set edge information
+        m_map_hash2index_.clear();
+        m_edge_list_.clear();
         for (int32_t index = 0; index < m_node_list_.size(); index++)
         {
-            map_hash2index.insert({m_node_list_[index]->data.getHash(), index});
+            m_map_hash2index_.insert({m_node_list_[index]->data.getHash(), index});
         }
-
-        std::vector<std::vector<int32_t>> edges;
         for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
         {
             for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
             {
-                if (map_hash2index.count(edge_ptr->data.dst) == 0)
+                if (m_map_hash2index_.count(edge_ptr->data.dst) == 0)
                     continue;
-                std::vector<int32_t> edge{map_hash2index.at(edge_ptr->data.src), map_hash2index.at(edge_ptr->data.dst)};
-                edges.push_back(edge);
+                std::vector<int32_t> edge{m_map_hash2index_.at(edge_ptr->data.src), m_map_hash2index_.at(edge_ptr->data.dst)};
+                m_edge_list_.push_back(edge);
             }
         }
-        return edges;
+
+        /// Fit 2D points to line model
+        fitLine();
+        setEndPointIndices(graph_helper_ptr);
+    }
+
+    std::vector<std::vector<int32_t>> edges() const
+    {
+        return m_edge_list_;
     }
 
     void addNodePtr(SkeletonGraphNode *node_ptr)
@@ -238,6 +235,11 @@ public:
         return sum_error / n_points;
     }
 
+    std::vector<int32_t> getEndPointIndices() const
+    {
+        return m_end_point_indices_;
+    }
+
 private:
     void normal(float &n_x, float &n_y)
     {
@@ -265,25 +267,41 @@ private:
         constant_output = u(2, 2);
     }
 
-    bool isEndPoint(const std::shared_ptr<SkeletonGraphNode> node_ptr) const
+    bool isEndPoint(const std::shared_ptr<SkeletonGraphNode> node_ptr, SkeletonGraphHelperPtr graph_helper_ptr) const
     {
         if (node_ptr->data.getPointType() == PointType::kEndPoint)
             return true;
         for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
         {
-            int32_t label_dst = m_graph_helper_ptr_->getNodePtr(edge_ptr->data.dst)->data.getLabel();
+            int32_t label_dst = graph_helper_ptr->getNodePtr(edge_ptr->data.dst)->data.getLabel();
             if (m_cluster_label_ != label_dst)
                 return true;
         }
         return false;
     }
 
+    void setEndPointIndices(SkeletonGraphHelperPtr graph_helper_ptr)
+    {
+        m_end_point_indices_.clear();
+        int32_t index = 0;
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : m_node_list_)
+        {
+            if (isEndPoint(node_ptr, graph_helper_ptr))
+                m_end_point_indices_.push_back(index);
+            index++;
+        }
+    }
+
     LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
+
+    std::unordered_map<Hash, int32_t> m_map_hash2index_;
+    std::vector<std::vector<int32_t>> m_point_list_;
     std::vector<std::shared_ptr<SkeletonGraphNode>> m_node_list_;
+    std::vector<std::vector<int32_t>> m_edge_list_;
+    std::vector<int32_t> m_end_point_indices_;
     LinearCluster *m_parent_;
-    SkeletonGraphHelperPtr m_graph_helper_ptr_;
     LineCoeff m_line_model_;
 };
 
