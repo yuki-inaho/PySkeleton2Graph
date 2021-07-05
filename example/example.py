@@ -1,4 +1,3 @@
-from os import write
 import cv2
 import numpy as np
 from pathlib import Path
@@ -96,6 +95,7 @@ def write_image(image, save_path, scale=1.0):
 skeleton = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 frame = SkeletonFrame(skeleton)
 s2g = Skeleton2Graph(simplification_threshold=15, directional_threshold=30)
+
 start = time.time()
 s2g.set_frame(frame)
 node_init = s2g.get_node_positions()
@@ -107,33 +107,35 @@ node_simplified = s2g.get_node_positions()
 edge_simplified = s2g.get_edges()
 end = time.time()
 print(end - start)
+
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
+
 
 """
 Output results
 """
+
+"""
 write_image(skeleton, f"{SCRIPT_DIR}/results/input.png", scale=2)
 # show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
 
-# Graph extraction result
+### Graph extraction result
 # show_image(
 write_image(
     draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_simplified, edge_simplified, node_labels_simplified, edge_bold=2),
     f"{SCRIPT_DIR}/results/graph.png",
     scale=2,
 )
+"""
 
 # Postprocessing result
 line_segments = s2g.get_linear_clusters()
 # show_image(
-write_image(
+show_image(
     draw_line_segments(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True
     ),
     f"{SCRIPT_DIR}/results/parsed.png",
     scale=2.0,
 )
-
-del line_segments
-del s2g
