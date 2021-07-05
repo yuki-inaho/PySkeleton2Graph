@@ -145,10 +145,8 @@ public:
       LinearCluster linear_cluster(cluster_index);
       for (Hash hash : hash_list_cc)
       {
-        //std::cout << "hash:" << hash << " " << m_graph_helper_ptr_->getNodePtr(hash)->data.getHash() << std::endl;
         linear_cluster.addSkeletonPoint(hash, m_graph_helper_ptr_);
       }
-      //std::cout << std::endl;
       m_linear_cluster_list_.push_back(linear_cluster);
       cluster_index++;
     }

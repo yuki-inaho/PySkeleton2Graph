@@ -164,10 +164,8 @@ public:
         {
             m_map_hash2index_.insert({node_ptr_list[index]->data.getHash(), index});
         }
-        //std::cout << "size:" << node_ptr_list.size() << std::endl;
         for (std::shared_ptr<SkeletonGraphNode> node_ptr : node_ptr_list)
         {
-            //std::cout << "test:" << node_ptr->data.getHash() << std::endl;
             for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
             {
                 if (m_map_hash2index_.count(edge_ptr->data.dst) == 0)
