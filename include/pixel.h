@@ -100,6 +100,17 @@ struct SkeletonPixel
     {
         return pixel1.hash == pixel2.hash;
     }
+
+public:
+    SkeletonPixel clone(){
+        SkeletonPixel pixel;
+        pixel.setPosition(x_pos, y_pos);
+        pixel.setHash(hash);
+        pixel.setLabel(hash);                // initial label <- initial node hash
+        pixel.setConnectivity(connectivity); // and point type
+        pixel.setPointType();
+        return pixel;
+    }
 };
 
 class EdgeSkeletonPixels

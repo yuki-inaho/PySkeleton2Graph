@@ -55,11 +55,11 @@ public:
 
   void simplify()
   {
+
     /*
     Step 1. Make junction points unique
     */
     std::vector<Hash> hash_list_articular_node;
-    std::vector<Hash> hash_list_gh = m_graph_helper_ptr_->getHashList();
     std::vector<std::vector<Hash>> hash_list_clique_to_compress;
 
     /// TODO: Rename function
@@ -137,6 +137,7 @@ public:
     int32_t n_cluster = hash_list_each_cc.size();
 
     // Generate LinearCluster instances
+
     int32_t cluster_index = 1;
     m_linear_cluster_list_.clear();
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
@@ -144,8 +145,10 @@ public:
       LinearCluster linear_cluster(cluster_index);
       for (Hash hash : hash_list_cc)
       {
-        linear_cluster.addNodePtr(m_graph_helper_ptr_->getNodePtr(hash));
+        //std::cout << "hash:" << hash << " " << m_graph_helper_ptr_->getNodePtr(hash)->data.getHash() << std::endl;
+        linear_cluster.addSkeletonPoint(hash, m_graph_helper_ptr_);
       }
+      //std::cout << std::endl;
       m_linear_cluster_list_.push_back(linear_cluster);
       cluster_index++;
     }
@@ -176,6 +179,19 @@ public:
   std::vector<std::vector<int32_t>> getEdges() const
   {
     return m_edge_list_output_;
+  }
+
+  void printNodeInfo()
+  {
+    std::vector<Hash> hash_list = m_graph_helper_ptr_->getHashList();
+    for (Hash hash : hash_list)
+    {
+      auto node_ptr = m_graph_helper_ptr_->getNodePtr(hash);
+      int32_t px, py;
+      node_ptr->data.getPosition(px, py);
+      int32_t label = node_ptr->data.getLabel();
+      std::cout << hash << " " << node_ptr->data.getHash() << " " << px << " " << py << " " << label << std::endl;
+    }
   }
 
 private:
@@ -272,7 +288,6 @@ private:
 
   int32_t m_image_width_, m_image_height_;
 
-  std::vector<SkeletonPixel> m_vector_skeleton_pixels_;
   MapHash2Pixel m_map_hash2pixel_initial_;
   MapHash2Index m_map_hash2index_initial_;
   SkeletonGraph m_graph_initial_;

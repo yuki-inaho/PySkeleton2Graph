@@ -16,7 +16,7 @@ public:
     GraphHelper(Graph<ND, LD> &graph) : graph(graph){};
     void addNode(Hash hash, ND data)
     {
-        NodePtr<ND, LD> node_ptr = graph.addNode(data);
+        NodePtr<ND, LD> node_ptr = graph.addNode(data.clone());
         m_map_hash_to_node_ptr_.insert(std::pair<Hash, NodePtr<ND, LD>>(hash, node_ptr));
         m_map_node_ptr_to_hash_.insert(std::pair<NodePtr<ND, LD>, Hash>(node_ptr, hash));
     }
@@ -219,6 +219,19 @@ public:
         {
             std::cerr << "graph.m_num_edges_ != m_map_hash_pair_to_edge_ptr_.size(): " << graph.m_num_edges_ << " " << m_map_hash_pair_to_edge_ptr_.size() << std::endl;
             exit(EXIT_FAILURE);
+        }
+
+        std::vector<Hash> hash_list;
+        for (auto kv : m_map_hash_to_node_ptr_)
+        {
+            hash_list.push_back(kv.first);
+        }
+        for(Hash node_hash: hash_list){
+            if (node_hash != getNodePtr(node_hash)->data.getHash())
+            {
+                std::cerr << "node_hash != getNodePtr(node_hash)->data.getHash():" << node_hash << "," << getNodePtr(node_hash)->data.getHash() << std::endl;
+                exit(EXIT_FAILURE);            
+            }
         }
 
         for (NodePtr<ND, LD> node_ptr = graph.firstNode; node_ptr; node_ptr = node_ptr->next)
