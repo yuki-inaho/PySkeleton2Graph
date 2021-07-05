@@ -61,6 +61,7 @@ public:
         }
 
         m_graph_helper_ptr_->setConnectedComponentLabels(m_connected_component_list_);
+
     }
 
     std::vector<std::vector<Hash>> getConnectedComponent()

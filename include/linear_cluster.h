@@ -16,7 +16,6 @@
 
 typedef Eigen::Matrix<float, 3, Eigen::Dynamic> Matrix2DPoints;
 
-// TODO: rename "m_node_list_"
 class LineCoeff
 {
 public:
