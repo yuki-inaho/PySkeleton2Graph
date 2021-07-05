@@ -280,11 +280,18 @@ private:
         SkeletonGraphNode *node_ptr = graph_helper_ptr->getNodePtr(hash);
         if (node_ptr->data.getPointType() == PointType::kEndPoint)
             return true;
+
+        int32_t num_edge = 0;
         for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
         {
             int32_t label_dst = graph_helper_ptr->getNodePtr(edge_ptr->data.dst)->data.getLabel();
             if (m_cluster_label_ != label_dst)
                 return true;
+            num_edge++;
+        }
+        if (num_edge < 2)
+        {
+            return true;
         }
         return false;
     }
