@@ -79,6 +79,23 @@ def draw_line_segments(image, line_segments: List[LinearCluster], circle_diamete
     return draw_frame
 
 
+def draw_mutual_cluster_connection(
+    image_to_show, line_segments: List[LinearCluster], mutual_cluster_index_pairs: List[int], point_index_pairs_mutual_clusters: List[int]
+):
+    n_mutual_cluster_edge = 0
+    for cluster_index_pair, point_index_pair in zip(mutual_cluster_index_pairs, point_index_pairs_mutual_clusters):
+        cluster_a = line_segments[cluster_index_pair[0]]
+        cluster_b = line_segments[cluster_index_pair[1]]
+
+        p_a = np.asarray(cluster_a.points())[point_index_pair[0]]
+        p_b = np.asarray(cluster_b.points())[point_index_pair[1]]
+        # print(f"{p_a}, {p_b}")
+        cv2.line(image_to_show, (p_a[0], p_a[1]), (p_b[0], p_b[1]), (0, 192, 255), 3)
+        n_mutual_cluster_edge += 1
+    print(f"n_mutual_cluster_edge: {int(n_mutual_cluster_edge)}")
+    return image_to_show
+
+
 def show_image(image, title="image", scale=1.0):
     while cv2.waitKey(10) & 0xFF not in [ord("q"), 27]:
         image_resize = cv2.resize(image, None, fx=scale, fy=scale)
@@ -92,6 +109,9 @@ def write_image(image, save_path, scale=1.0):
     cv2.waitKey(10)
 
 
+"""
+Skeleton to Graph convertion
+"""
 skeleton = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 frame = SkeletonFrame(skeleton)
 s2g = Skeleton2Graph(simplification_threshold=10, directional_threshold=30)
@@ -111,11 +131,13 @@ print(end - start)
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
 
+
 """
 Output results
 """
 
 """
+### Output raw skeleton
 write_image(skeleton, f"{SCRIPT_DIR}/results/input.png", scale=2)
 # show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
 
@@ -128,16 +150,14 @@ write_image(
 )
 """
 
-### TODO: draw connectivity
-print(f"cluster connection:{s2g.get_index_pair_mutual_clusters()}")
-
-# Postprocessing result
 line_segments = s2g.get_linear_clusters()
-# write_image(
-show_image(
-    draw_line_segments(
-        cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True
-    ),
-    f"{SCRIPT_DIR}/results/parsed.png",
-    scale=2.0,
-)
+mutual_cluster_index_pairs: List[int] = s2g.get_mutual_cluster_index_pair()
+point_index_pairs_mutual_clusters: List[int] = s2g.get_point_index_pair_mutual_clusters()
+
+### Postprocessing result
+image_to_show = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
+image_to_show = draw_mutual_cluster_connection(image_to_show, line_segments, mutual_cluster_index_pairs, point_index_pairs_mutual_clusters)
+image_to_show = draw_line_segments(image_to_show, line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True)
+
+show_image(image_to_show, scale=2.0)
+# write_image(image_to_show, f"{SCRIPT_DIR}/results/parsed.png", scale=2.0)

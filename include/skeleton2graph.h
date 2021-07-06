@@ -162,7 +162,11 @@ public:
       m_linear_cluster_list_[i].update(m_graph_helper_ptr_);
     }
 
-    m_index_pairs_mutual_clusters_ = identificateClusterConnection(m_linear_cluster_list_, m_graph_helper_ptr_);
+    identificateClusterConnection(
+        m_linear_cluster_list_,
+        m_graph_helper_ptr_,
+        m_index_pairs_mutual_clusters_,
+        m_point_index_pairs_mutual_clusters_);
   }
 
   std::vector<int32_t> getNodeLabels() const
@@ -185,9 +189,14 @@ public:
     return m_linear_cluster_list_;
   }
 
-  std::vector<std::vector<int32_t>> getIndexPairsMutualClusters() const
+  std::vector<std::vector<int32_t>> getMutualClusterIndexPairs() const
   {
     return m_index_pairs_mutual_clusters_;
+  }
+
+  std::vector<std::vector<int32_t>> getPointIndexPairsMutualClusters() const
+  {
+    return m_point_index_pairs_mutual_clusters_;
   }
 
   void printNodeInfo()
@@ -306,6 +315,7 @@ private:
   std::vector<std::vector<int32_t>> m_edge_list_output_;
   std::vector<LinearCluster> m_linear_cluster_list_;
   std::vector<std::vector<int32_t>> m_index_pairs_mutual_clusters_;
+  std::vector<std::vector<int32_t>> m_point_index_pairs_mutual_clusters_;
 };
 
 #endif // PYSKELETON2GRAPH_INCLUDE_SKELETON2GRAPH_H_

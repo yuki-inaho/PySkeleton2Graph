@@ -220,6 +220,10 @@ public:
         return m_edge_list_;
     }
 
+    int32_t hash2index(const Hash& node_hash) const {
+        return m_map_hash2index_.at(node_hash);
+    }
+
     void addSkeletonPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr)
     {
         SkeletonGraphNode *node_ptr = accessByHash(node_hash, graph_helper_ptr);
@@ -421,8 +425,10 @@ private:
 Return connectivity relation between two clusters
 */
 // TODO: write more simply
-std::vector<std::vector<int32_t>> identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr)
+void identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr, std::vector<std::vector<int32_t>>& index_pairs_mutual_clusters, std::vector<std::vector<Hash>>& point_index_pairs_mutual_clusters)
 {
+    index_pairs_mutual_clusters.clear();
+    point_index_pairs_mutual_clusters.clear();
 
     // Set searching target points in each cluster
     int32_t n_clusters = linear_cluster_list.size();
@@ -438,7 +444,6 @@ std::vector<std::vector<int32_t>> identificateClusterConnection(const std::vecto
     }
 
     // Search cluster connection
-    std::vector<std::vector<int32_t>> index_pairs_mutual_clusters;
     for (int32_t index_cluster = 0; index_cluster < n_clusters; index_cluster++)
     {
         std::vector<SkeletonGraphNode *> search_point_ptr_list = search_point_ptr_list_each_cluster[index_cluster];
@@ -450,11 +455,14 @@ std::vector<std::vector<int32_t>> identificateClusterConnection(const std::vecto
 
             // check connectivity between two end points
             bool exists_edge = false;
+            Hash search_point_hash, search_point_hash_compare;
             for (SkeletonGraphNode *search_point_ptr : search_point_ptr_list)
             {
                 for (SkeletonGraphNode *search_point_ptr_compare : search_point_ptr_list_compare)
                 {
-                    exists_edge |= graph_helper_ptr->existsEdge(search_point_ptr->data.getHash(), search_point_ptr_compare->data.getHash());
+                    search_point_hash = search_point_ptr->data.getHash();
+                    search_point_hash_compare = search_point_ptr_compare->data.getHash();
+                    exists_edge |= graph_helper_ptr->existsEdge(search_point_hash, search_point_hash_compare);
                     if (exists_edge)
                         break;
                 }
@@ -463,14 +471,17 @@ std::vector<std::vector<int32_t>> identificateClusterConnection(const std::vecto
             }
             if (exists_edge)
             {
-                std::vector<int32_t> node_index_pair{index_cluster, index_cluster_compare};
-                std::vector<int32_t> node_index_pair_reversed{index_cluster_compare, index_cluster};
-                index_pairs_mutual_clusters.push_back(node_index_pair);
-                index_pairs_mutual_clusters.push_back(node_index_pair_reversed);
+                /// Actual mutual connectivity is undirectional, but for simplify, store unique combination of index pair will be stored.
+                std::vector<int32_t> cluster_index_pair{index_cluster, index_cluster_compare};
+                index_pairs_mutual_clusters.push_back(cluster_index_pair);
+
+                int32_t search_point_index = linear_cluster_list[index_cluster].hash2index(search_point_hash);
+                int32_t search_point_index_compare = linear_cluster_list[index_cluster_compare].hash2index(search_point_hash_compare);
+                std::vector<int32_t> node_index_pair{search_point_index, search_point_index_compare};                
+                point_index_pairs_mutual_clusters.push_back(node_index_pair);
             }
         }
     }
-    return index_pairs_mutual_clusters;
 }
 
 #endif // PYSKELETON2GRAPH_INCLUDE_LINEAR_CLUSTER_H_
