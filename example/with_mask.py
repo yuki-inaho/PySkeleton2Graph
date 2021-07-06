@@ -24,7 +24,6 @@ Skeleton to Graph convertion
 """
 skeleton_image = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 mask_image = cv2.imread(f"{SCRIPT_DIR}/example/data/mask.png", cv2.IMREAD_ANYDEPTH)
-
 print("<distance tranform process (for mask combined process)>")
 distance_image = distance_transform(mask_image)
 
@@ -50,5 +49,9 @@ for node in node_list_simplified:
 
 show_image(skel_plus_mask_viz , scale=2.0)
 show_image(colorize_distance_image(distance_image), scale=2.0)
-# write_image(skel_plus_mask_viz, "results/skeleton_with_mask.png", scale=2.0)
-# write_image(colorize_distance_image(distance_image), "results/distance_transform.png", scale=2.0)
+
+"""
+write_image(cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR), "results/mask_resized.png", scale=2.0)
+write_image(skel_plus_mask_viz, "results/skeleton_with_mask.png", scale=2.0)
+write_image(colorize_distance_image(distance_image), "results/distance_transform.png", scale=2.0)
+"""
