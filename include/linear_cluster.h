@@ -23,23 +23,26 @@ public:
 
     void set(const float &p1_x, const float &p1_y, const float &p2_x, const float &p2_y)
     {
-        float l_x = p2_x - p1_x;
-        float l_y = p2_y - p1_y;
+        float l_x_tmp = p2_x - p1_x;
+        float l_y_tmp = p2_y - p1_y;
 
-        float l_sqrt = std::sqrt(l_x * l_x + l_y * l_y);
-        l_x /= l_sqrt;
-        l_y /= l_sqrt;
+        float l_sqrt = std::sqrt(l_x_tmp * l_x_tmp + l_y_tmp * l_y_tmp);
+        l_x_tmp /= l_sqrt;
+        l_y_tmp /= l_sqrt;
 
-        m_nx_ = -l_y;
-        m_ny_ = l_x;
+        m_nx_ = -l_y_tmp;
+        m_ny_ = l_x_tmp;
+        m_constant_ = -(m_nx_ * p1_x + m_ny_ * p1_y);
 
-        /// align vector direction
-        if (m_ny_ > 0)
+        /// align vector direction (always upward in the term of 2d image view)
+        if (this->l_y() > 0)
         {
             m_nx_ *= -1;
             m_ny_ *= -1;
+            m_constant_ *= -1;
         }
-        m_constant_ = -(m_nx_ * p1_x + m_ny_ * p1_y);
+
+        validationNormal();
     }
 
     void set(const float &n_x_, const float &n_y_, const float &constant_)
@@ -47,21 +50,26 @@ public:
         float n_norm = std::sqrt(n_x_ * n_x_ + n_y_ * n_y_);
         m_nx_ = n_x_ / n_norm;
         m_ny_ = n_y_ / n_norm;
+        m_constant_ = constant_ / n_norm;
 
         /// align vector direction
-        if (m_ny_ > 0)
+        if (this->l_y() > 0)
         {
             m_nx_ *= -1;
             m_ny_ *= -1;
+            m_constant_ *= -1;
         }
-        m_constant_ = constant_ / n_norm;
+
+        validationNormal();
     }
 
     float get_fit_error(const float &p_x, const float &p_y)
     {
         return m_nx_ * p_x + m_ny_ * p_y + m_constant_;
     }
-
+    /*
+    normal of line model
+    */
     float n_x() const
     {
         return m_nx_;
@@ -72,14 +80,38 @@ public:
         return m_ny_;
     }
 
+    /*
+    line direction
+    */
+    float l_x() const
+    {
+        return -m_ny_;
+    }
+
+    float l_y() const
+    {
+        return m_nx_;
+    }
+
     float n_constant() const
     {
         return m_constant_;
     }
 
 private:
-    float m_nx_;
-    float m_ny_;
+    void validationNormal()
+    {
+        float epsilon = 10e-4;
+        if(std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ * m_ny_) - 1) > epsilon){
+            std::cerr << "linear_cluster.h: std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ * m_ny_) - 1) > epsilon" << std::endl;
+            exit(EXIT_FAILURE);
+        }else if(this->l_y() > 0){
+            std::cerr << "status &= this->l_y() > 0" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    float m_nx_, m_ny_;
     float m_constant_;
 };
 
