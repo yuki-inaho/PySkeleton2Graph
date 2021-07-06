@@ -4,3 +4,4 @@ dist/
 pyproject.toml
 pys2g.egg-info/
 pys2g.cpython*.so
+core

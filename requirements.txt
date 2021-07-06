@@ -1,3 +1,6 @@
 cmake
 opencv-python
 numpy
+
+# For sample code
+numba
