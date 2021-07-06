@@ -90,7 +90,7 @@ def draw_mutual_cluster_connection(
         p_a = np.asarray(cluster_a.points())[point_index_pair[0]]
         p_b = np.asarray(cluster_b.points())[point_index_pair[1]]
         # print(f"{p_a}, {p_b}")
-        cv2.line(image_to_show, (p_a[0], p_a[1]), (p_b[0], p_b[1]), (0, 192, 255), 3)
+        cv2.line(image_to_show, (p_a[0], p_a[1]), (p_b[0], p_b[1]), (0, 192, 200), 2)
         n_mutual_cluster_edge += 1
     print(f"n_mutual_cluster_edge: {int(n_mutual_cluster_edge)}")
     return image_to_show
@@ -135,16 +135,18 @@ print(f"num edge(simplified): {len(edge_simplified)}")
 """
 Output results
 """
+image_to_show = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
 
 """
 ### Output raw skeleton
+show_image(image_to_show, scale=2)
 write_image(skeleton, f"{SCRIPT_DIR}/results/input.png", scale=2)
-# show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
 
 ### Graph extraction result
-# show_image(
+#show_image(draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_init, edge_init))
+#show_image(
 write_image(
-    draw_graph(cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), node_simplified, edge_simplified, node_labels_simplified, edge_bold=2),
+    draw_graph(image_to_show, node_simplified, edge_simplified, node_labels_simplified, edge_bold=2),
     f"{SCRIPT_DIR}/results/graph.png",
     scale=2,
 )
@@ -155,9 +157,8 @@ mutual_cluster_index_pairs: List[int] = s2g.get_mutual_cluster_index_pair()
 point_index_pairs_mutual_clusters: List[int] = s2g.get_point_index_pair_mutual_clusters()
 
 ### Postprocessing result
-image_to_show = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
 image_to_show = draw_mutual_cluster_connection(image_to_show, line_segments, mutual_cluster_index_pairs, point_index_pairs_mutual_clusters)
 image_to_show = draw_line_segments(image_to_show, line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True)
 
 show_image(image_to_show, scale=2.0)
-# write_image(image_to_show, f"{SCRIPT_DIR}/results/parsed.png", scale=2.0)
+#write_image(image_to_show, f"{SCRIPT_DIR}/results/parsed.png", scale=2.0)
