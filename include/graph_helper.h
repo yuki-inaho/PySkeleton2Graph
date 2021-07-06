@@ -300,6 +300,11 @@ public:
         return m_edge_list_;
     }
 
+    bool existsEdge(const int32_t& node1_hash, const int32_t& node2_hash) const
+    {
+        return m_map_hash_pair_to_edge_ptr_.count(std::pair<Hash, Hash>{node1_hash, node2_hash}) > 0;
+    }
+
     void setConnectedComponentLabels(const std::vector<std::vector<Hash>> &hash_list_each_cc)
     {
         m_node_label_list_.clear();

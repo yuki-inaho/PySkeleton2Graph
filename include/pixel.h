@@ -101,8 +101,26 @@ struct SkeletonPixel
         return pixel1.hash == pixel2.hash;
     }
 
+    /*
+    return euclidean distance between two pixels
+    */
+    float distance(const SkeletonPixel &pixel_compare)
+    {
+        int32_t p1_x, p1_y, p2_x, p2_y;
+        this->getPosition(p1_x, p1_y);
+        pixel_compare.getPosition(p2_x, p2_y);
+        return std::sqrt((p1_x - p2_x) * (p1_x - p2_x) + (p1_y - p2_y) * (p1_y - p2_y));
+    }
+
+    bool isNear(const SkeletonPixel &pixel_compare, const float &distance_threshold)
+    {
+        float dist = this->distance(pixel_compare);
+        return dist <= distance_threshold;
+    }
+
 public:
-    SkeletonPixel clone(){
+    SkeletonPixel clone()
+    {
         SkeletonPixel pixel;
         pixel.setPosition(x_pos, y_pos);
         pixel.setHash(hash);
@@ -145,7 +163,8 @@ public:
         dst = pixel_destination.getHash();
 
         m_distance_between_two_pixels_ = calcPixelDistance(pixel_source, pixel_destination);
-        if(pixel_source.getPointType()==PointType::kJunctionPoint || pixel_destination.getPointType()==PointType::kJunctionPoint){
+        if (pixel_source.getPointType() == PointType::kJunctionPoint || pixel_destination.getPointType() == PointType::kJunctionPoint)
+        {
             m_angle_between_two_pixels_ = 10E8;
         }
     }

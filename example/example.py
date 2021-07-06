@@ -111,7 +111,6 @@ print(end - start)
 print(f"num edge(init): {len(edge_init)}")
 print(f"num edge(simplified): {len(edge_simplified)}")
 
-
 """
 Output results
 """
@@ -129,9 +128,12 @@ write_image(
 )
 """
 
+### TODO: draw connectivity
+print(f"cluster connection:{s2g.get_index_pair_mutual_clusters()}")
+
 # Postprocessing result
 line_segments = s2g.get_linear_clusters()
-#write_image(
+# write_image(
 show_image(
     draw_line_segments(
         cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR), line_segments, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True

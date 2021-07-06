@@ -39,6 +39,7 @@ PYBIND11_MODULE(pys2g, m)
         .def("simplify", &Skeleton2Graph::simplify)
         .def("clustering", &Skeleton2Graph::clustering)
         .def("get_linear_clusters", &Skeleton2Graph::getLinearClusters)
+        .def("get_index_pair_mutual_clusters", &Skeleton2Graph::getIndexPairsMutualClusters)
         .def("get_node_labels", &Skeleton2Graph::getNodeLabels)
         .def("get_node_positions", &Skeleton2Graph::getNodePositions)
         .def("get_edges", &Skeleton2Graph::getEdges);
