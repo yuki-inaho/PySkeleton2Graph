@@ -30,6 +30,8 @@ PYBIND11_MODULE(pys2g, m)
         .def("direction", &LinearCluster::line_direction)
         .def("length", &LinearCluster::line_length)
         .def("points", &LinearCluster::points)
+        .def("point_index_argmax_y", &LinearCluster::highestPointIndex)
+        .def("point_index_argmin_y", &LinearCluster::lowestPointIndex)
         .def("edges", &LinearCluster::edges)
         .def("indices_end_points", &LinearCluster::getEndPointIndices);
     py::class_<Skeleton2Graph>(m, "Skeleton2Graph")
