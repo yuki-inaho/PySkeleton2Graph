@@ -179,12 +179,12 @@ public:
 
     int32_t highestPointIndex() const
     {
-        return m_index_argmax_p_y_;
+        return m_index_argmin_p_y_;
     }
 
     int32_t lowestPointIndex() const
     {
-        return m_index_argmin_p_y_;
+        return m_index_argmax_p_y_;
     }
 
     /*
