@@ -344,6 +344,17 @@ public:
         return node_ptr_list_junction_points;
     }
 
+    std::vector<int32_t> projectionPointToLine(const std::vector<int32_t> &point)
+    {
+        float p_x = static_cast<float>(point[0]);
+        float p_y = static_cast<float>(point[1]);
+        float distance_to_line = p_x * m_line_model_.n_x() + p_y * m_line_model_.n_y() + m_line_model_.n_constant();
+        int32_t p_x_projected = static_cast<int32_t>(p_x - distance_to_line * m_line_model_.n_x());
+        int32_t p_y_projected = static_cast<int32_t>(p_y - distance_to_line * m_line_model_.n_y());
+        std::vector<int32_t> projected_point{p_x_projected, p_y_projected};
+        return projected_point;
+    }
+
 private:
     inline SkeletonGraphNode *accessByIndex(const int32_t &node_index, SkeletonGraphHelperPtr graph_helper_ptr) const
     {
@@ -430,17 +441,6 @@ private:
                 m_junction_point_indices_.push_back(index);
             index++;
         }
-    }
-
-    std::vector<int32_t> projectionPointToLine(const std::vector<int32_t> &point)
-    {
-        float p_x = static_cast<float>(point[0]);
-        float p_y = static_cast<float>(point[1]);
-        float distance_to_line = p_x * m_line_model_.n_x() + p_y * m_line_model_.n_y() + m_line_model_.n_constant();
-        int32_t p_x_projected = static_cast<int32_t>(p_x - distance_to_line * m_line_model_.n_x());
-        int32_t p_y_projected = static_cast<int32_t>(p_y - distance_to_line * m_line_model_.n_y());
-        std::vector<int32_t> projected_point{p_x_projected, p_y_projected};
-        return projected_point;
     }
 
     void setProjectedPointsToLine()
