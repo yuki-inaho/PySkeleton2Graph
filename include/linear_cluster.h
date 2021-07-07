@@ -164,6 +164,11 @@ public:
         return parameters;
     }
 
+    float line_length() const
+    {
+        return m_line_length_;
+    }
+
     /*
     Return skeleton point positions(px, py)
     */
@@ -219,6 +224,9 @@ public:
         fitLine(graph_helper_ptr);
         setEndPointIndices(graph_helper_ptr);
         setJunctionPointIndices(graph_helper_ptr);
+
+        setProjectedPointsToLine();
+        setLineLength();
     }
 
     std::vector<std::vector<int32_t>> edges() const
@@ -414,18 +422,77 @@ private:
         }
     }
 
+    std::vector<int32_t> projectionPointToLine(const std::vector<int32_t> &point)
+    {
+        float p_x = static_cast<float>(point[0]);
+        float p_y = static_cast<float>(point[1]);
+        float distance_to_line = p_x * m_line_model_.n_x() + p_y * m_line_model_.n_y() + m_line_model_.n_constant();
+        int32_t p_x_projected = static_cast<int32_t>(p_x - distance_to_line * m_line_model_.n_x());
+        int32_t p_y_projected = static_cast<int32_t>(p_y - distance_to_line * m_line_model_.n_y());
+        std::vector<int32_t> projected_point{p_x_projected, p_y_projected};
+        return projected_point;
+    }
+
+    void setProjectedPointsToLine()
+    {
+        m_projected_point_list_.clear();
+        std::transform(
+            m_point_list_.begin(), m_point_list_.end(),
+            std::back_inserter(m_projected_point_list_),
+            [&](const std::vector<int32_t> point)
+            { return projectionPointToLine(point); });
+    }
+
+    std::vector<int32_t> getPointsValueX(const std::vector<std::vector<int32_t>> &point_list)
+    {
+        std::vector<int32_t> projected_point_x_list;
+        std::transform(
+            point_list.begin(), point_list.end(),
+            std::back_inserter(projected_point_x_list),
+            [&](const std::vector<int32_t> point)
+            { return point[0]; });
+        return projected_point_x_list;
+    }
+
+    std::vector<int32_t> getPointsValueY(const std::vector<std::vector<int32_t>> &point_list)
+    {
+        std::vector<int32_t> projected_point_y_list;
+        std::transform(
+            point_list.begin(), point_list.end(),
+            std::back_inserter(projected_point_y_list),
+            [&](const std::vector<int32_t> point)
+            { return point[1]; });
+        return projected_point_y_list;
+    }
+
+    void setLineLength()
+    {
+        std::vector<int32_t> projected_point_y_list = getPointsValueY(m_projected_point_list_);
+        std::vector<int32_t>::iterator min_it = std::min_element(projected_point_y_list.begin(), projected_point_y_list.end());
+        std::vector<int32_t>::iterator max_it = std::max_element(projected_point_y_list.begin(), projected_point_y_list.end());
+        m_index_argmin_p_y_ = std::distance(projected_point_y_list.begin(), min_it);
+        m_index_argmax_p_y_ = std::distance(projected_point_y_list.begin(), max_it);
+        float diff_x = m_projected_point_list_[m_index_argmax_p_y_][0] - m_projected_point_list_[m_index_argmin_p_y_][0];
+        float diff_y = m_projected_point_list_[m_index_argmax_p_y_][1] - m_projected_point_list_[m_index_argmin_p_y_][1];
+        m_line_length_ = std::sqrt(diff_x * diff_x + diff_y * diff_y);
+    }
+
     LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
 
+    float m_line_length_;
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     std::vector<std::vector<int32_t>> m_point_list_;
+    std::vector<std::vector<int32_t>> m_projected_point_list_;
     std::vector<Hash> m_node_hash_list_;
     std::vector<std::vector<int32_t>> m_edge_list_;
     std::vector<int32_t> m_end_point_indices_;
     std::vector<int32_t> m_junction_point_indices_;
     LinearCluster *m_parent_;
     LineCoeff m_line_model_;
+
+    int32_t m_index_argmin_p_y_, m_index_argmax_p_y_; //mainly for debug
 };
 
 /*

@@ -28,6 +28,7 @@ PYBIND11_MODULE(pys2g, m)
         .def("size", &LinearCluster::size)
         .def("line", &LinearCluster::line_parameter)
         .def("direction", &LinearCluster::line_direction)
+        .def("length", &LinearCluster::line_length)
         .def("points", &LinearCluster::points)
         .def("edges", &LinearCluster::edges)
         .def("indices_end_points", &LinearCluster::getEndPointIndices);
