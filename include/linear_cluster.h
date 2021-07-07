@@ -152,9 +152,15 @@ public:
     /*
     Return fitted line model parameters
     */
-    std::vector<float> line() const
+    std::vector<float> line_parameter() const
     {
         std::vector<float> parameters{m_line_model_.n_x(), m_line_model_.n_y(), m_line_model_.n_constant()};
+        return parameters;
+    }
+
+    std::vector<float> line_direction() const
+    {
+        std::vector<float> parameters{m_line_model_.l_x(), m_line_model_.l_y()};
         return parameters;
     }
 
@@ -220,7 +226,8 @@ public:
         return m_edge_list_;
     }
 
-    int32_t hash2index(const Hash& node_hash) const {
+    int32_t hash2index(const Hash &node_hash) const
+    {
         return m_map_hash2index_.at(node_hash);
     }
 
@@ -425,7 +432,7 @@ private:
 Return connectivity relation between two clusters
 */
 // TODO: write more simply
-void identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr, std::vector<std::vector<int32_t>>& index_pairs_mutual_clusters, std::vector<std::vector<Hash>>& point_index_pairs_mutual_clusters)
+void identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr, std::vector<std::vector<int32_t>> &index_pairs_mutual_clusters, std::vector<std::vector<Hash>> &point_index_pairs_mutual_clusters)
 {
     index_pairs_mutual_clusters.clear();
     point_index_pairs_mutual_clusters.clear();
@@ -477,7 +484,7 @@ void identificateClusterConnection(const std::vector<LinearCluster> &linear_clus
 
                 int32_t search_point_index = linear_cluster_list[index_cluster].hash2index(search_point_hash);
                 int32_t search_point_index_compare = linear_cluster_list[index_cluster_compare].hash2index(search_point_hash_compare);
-                std::vector<int32_t> node_index_pair{search_point_index, search_point_index_compare};                
+                std::vector<int32_t> node_index_pair{search_point_index, search_point_index_compare};
                 point_index_pairs_mutual_clusters.push_back(node_index_pair);
             }
         }
