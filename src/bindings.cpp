@@ -10,18 +10,14 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pys2g, m)
-{
+PYBIND11_MODULE(pys2g, m) {
     NDArrayConverter::init_numpy();
     py::enum_<LinearClusterType>(m, "LinearClusterType")
         .value("EndPointCluster", LinearClusterType::kEndPointCluster)
         .value("BridgePointCluster", LinearClusterType::kBridgePointCluster)
         .value("JunctionPointCluster", LinearClusterType::kJunctionPointCluster)
         .export_values();
-    py::class_<SkeletonFrame>(m, "SkeletonFrame")
-        .def(
-            py::init<const cv::Mat &>(),
-            py::arg("skeleton_image"));
+    py::class_<SkeletonFrame>(m, "SkeletonFrame").def(py::init<const cv::Mat &>(), py::arg("skeleton_image"));
     py::class_<LinearCluster>(m, "LinearCluster")
         .def("label", &LinearCluster::label)
         .def("type", &LinearCluster::type)
@@ -38,12 +34,9 @@ PYBIND11_MODULE(pys2g, m)
         .def("set_image_size", &LinearCluster::setInputImageSize)
         .def("image_size", &LinearCluster::getInputImageSize)
         .def("rescale", &LinearCluster::rescale)
-        .def("binary_mask", &LinearCluster::getBinaryMask);
+        .def("binary_mask", &LinearCluster::getBinaryMask, py::arg("thickness") = 1);
     py::class_<Skeleton2Graph>(m, "Skeleton2Graph")
-        .def(
-            py::init<const float &, const float &>(),
-            py::arg("simplification_threshold"),
-            py::arg("directional_threshold"))
+        .def(py::init<const float &, const float &>(), py::arg("simplification_threshold"), py::arg("directional_threshold"))
         .def("set_frame", &Skeleton2Graph::setFrame)
         .def("simplify", &Skeleton2Graph::simplify)
         .def("clustering", &Skeleton2Graph::clustering)
