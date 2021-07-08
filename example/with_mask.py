@@ -47,7 +47,7 @@ skel_plus_mask_viz = cv2.addWeighted(skeleton_viz_image, 0.7, mask_viz_image, 0.
 for node in node_list_simplified:
     cv2.circle(skel_plus_mask_viz, node, int(distance_image[node[1], node[0]]), (0, 0, 255), thickness=1, lineType=cv2.LINE_AA)
 
-show_image(skel_plus_mask_viz , scale=2.0)
+show_image(skel_plus_mask_viz, scale=2.0)
 show_image(colorize_distance_image(distance_image), scale=2.0)
 
 """

@@ -9,20 +9,18 @@
 #include <eigen3/Eigen/SVD>
 #endif
 
-#include "pixel.h"
 #include "graph.h"
 #include "graph_helper.h"
+#include "pixel.h"
 #include "typedef_graph.h"
 
 typedef Eigen::Matrix<float, 3, Eigen::Dynamic> Matrix2DPoints;
 
-class LineCoeff
-{
-public:
+class LineCoeff {
+   public:
     LineCoeff(){};
 
-    void set(const float &p1_x, const float &p1_y, const float &p2_x, const float &p2_y)
-    {
+    void set(const float &p1_x, const float &p1_y, const float &p2_x, const float &p2_y) {
         float l_x_tmp = p2_x - p1_x;
         float l_y_tmp = p2_y - p1_y;
 
@@ -35,8 +33,7 @@ public:
         m_constant_ = -(m_nx_ * p1_x + m_ny_ * p1_y);
 
         /// align vector direction (always upward in the term of 2d image view)
-        if (this->l_y() > 0)
-        {
+        if (this->l_y() > 0) {
             m_nx_ *= -1;
             m_ny_ *= -1;
             m_constant_ *= -1;
@@ -45,16 +42,14 @@ public:
         validationNormal();
     }
 
-    void set(const float &n_x_, const float &n_y_, const float &constant_)
-    {
+    void set(const float &n_x_, const float &n_y_, const float &constant_) {
         float n_norm = std::sqrt(n_x_ * n_x_ + n_y_ * n_y_);
         m_nx_ = n_x_ / n_norm;
         m_ny_ = n_y_ / n_norm;
         m_constant_ = constant_ / n_norm;
 
         /// align vector direction
-        if (this->l_y() > 0)
-        {
+        if (this->l_y() > 0) {
             m_nx_ *= -1;
             m_ny_ *= -1;
             m_constant_ *= -1;
@@ -63,52 +58,52 @@ public:
         validationNormal();
     }
 
-    float get_fit_error(const float &p_x, const float &p_y)
-    {
-        return m_nx_ * p_x + m_ny_ * p_y + m_constant_;
-    }
+    float get_fit_error(const float &p_x, const float &p_y) { return m_nx_ * p_x + m_ny_ * p_y + m_constant_; }
     /*
     normal of line model
     */
-    float n_x() const
-    {
-        return m_nx_;
-    }
+    float n_x() const { return m_nx_; }
 
-    float n_y() const
-    {
-        return m_ny_;
-    }
+    float n_y() const { return m_ny_; }
 
     /*
     line direction
     */
-    float l_x() const
-    {
-        return -m_ny_;
+    float l_x() const { return -m_ny_; }
+
+    float l_y() const { return m_nx_; }
+
+    float n_constant() const { return m_constant_; }
+
+    /*
+        line model:       n_x * (x - c_x) + n_y * (y - c_y) = 0
+                        or (n_const = - n_x * c_x - n_y * c_y),
+                                n_x * x + n_y * y + n_const = 0
+
+                        s.t.
+                                  n_x ** 2 + n_y ** 2 = 1
+        rescaled  :
+                        n_x * (x' - c_x') + n_y * (y' - c_y') = 0
+                                                           x' = scale * x
+                                                         c_x' = scale * c_x
+                                                         c_y' = scale * c_y
+                                                     n_const' = - scale * (n_x *
+       c_x + n_y * c_y) = scale * n_const
+    */
+    void rescale(const float &scale) {
+        CV_Assert(scale > 0);
+        m_constant_ *= scale;
     }
 
-    float l_y() const
-    {
-        return m_nx_;
-    }
-
-    float n_constant() const
-    {
-        return m_constant_;
-    }
-
-private:
-    void validationNormal()
-    {
+   private:
+    void validationNormal() {
         float epsilon = 10e-4;
-        if (std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ * m_ny_) - 1) > epsilon)
-        {
-            std::cerr << "linear_cluster.h: std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ * m_ny_) - 1) > epsilon" << std::endl;
+        if (std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ * m_ny_) - 1) > epsilon) {
+            std::cerr << "linear_cluster.h: std::abs(std::sqrt(m_nx_ * m_nx_ + m_ny_ "
+                         "* m_ny_) - 1) > epsilon"
+                      << std::endl;
             exit(EXIT_FAILURE);
-        }
-        else if (this->l_y() > 0)
-        {
+        } else if (this->l_y() > 0) {
             std::cerr << "status &= this->l_y() > 0" << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -118,85 +113,63 @@ private:
     float m_constant_;
 };
 
-class LinearCluster
-{
-public:
+class LinearCluster {
+   public:
     LinearCluster(){};
-    LinearCluster(int32_t cluster_label) : m_parent_(this), m_cluster_label_(cluster_label), m_cluster_type_(LinearClusterType::kBridgePointCluster){};
+    LinearCluster(int32_t cluster_label)
+        : m_cluster_label_(cluster_label),
+          m_cluster_type_(LinearClusterType::kBridgePointCluster),
+          m_line_length_(0),
+          m_input_image_width_(0),
+          m_input_image_height_(0){};
     ~LinearCluster(){};
 
-    int32_t label() const
-    {
-        return m_cluster_label_;
-    }
+    int32_t label() const { return m_cluster_label_; }
 
-    void relabel(const int32_t &new_label, SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void relabel(const int32_t &new_label, SkeletonGraphHelperPtr graph_helper_ptr) {
         m_cluster_label_ = new_label;
-        for (Hash node_hash : m_node_hash_list_)
-        {
+        for (Hash node_hash : m_node_hash_list_) {
             accessByHash(node_hash, graph_helper_ptr)->data.setLabel(new_label);
         }
     }
 
-    int32_t size() const
-    {
-        return m_node_hash_list_.size();
-    }
+    int32_t size() const { return m_node_hash_list_.size(); }
 
-    LinearClusterType type() const
-    {
-        return m_cluster_type_;
-    }
+    LinearClusterType type() const { return m_cluster_type_; }
 
     /*
     Return fitted line model parameters
     */
-    std::vector<float> line_parameter() const
-    {
+    std::vector<float> line_parameter() const {
         std::vector<float> parameters{m_line_model_.n_x(), m_line_model_.n_y(), m_line_model_.n_constant()};
         return parameters;
     }
 
-    std::vector<float> line_direction() const
-    {
+    std::vector<float> line_direction() const {
         std::vector<float> parameters{m_line_model_.l_x(), m_line_model_.l_y()};
         return parameters;
     }
 
-    float line_length() const
-    {
-        return m_line_length_;
-    }
+    float line_length() const { return m_line_length_; }
 
     /*
     Return skeleton point positions(px, py)
     */
-    std::vector<std::vector<int32_t>> points()
-    {
-        return m_point_list_;
-    }
+    std::vector<std::vector<int32_t>> points() { return m_point_list_; }
 
-    int32_t highestPointIndex() const
-    {
-        return m_index_argmin_p_y_;
-    }
+    int32_t highestPointIndex() const { return m_index_argmin_p_y_; }
 
-    int32_t lowestPointIndex() const
-    {
-        return m_index_argmax_p_y_;
-    }
+    int32_t lowestPointIndex() const { return m_index_argmax_p_y_; }
 
     /*
-    Update intrinsic infromation of each clusters, after addSkeletonPoint() calling
+    Update intrinsic infromation of each clusters, after addSkeletonPoint()
+    calling
     */
-    void update(SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void update(SkeletonGraphHelperPtr graph_helper_ptr) {
         /// Set 2D point (corresponded to a node) information in the cluster
         m_point_list_.clear();
         std::vector<std::shared_ptr<SkeletonGraphNode>> node_ptr_list;
-        for (Hash node_hash : m_node_hash_list_)
-        {
+        for (Hash node_hash : m_node_hash_list_) {
             int32_t test = accessByHash(node_hash, graph_helper_ptr)->data.getHash();
             int32_t px, py;
             accessByHash(node_hash, graph_helper_ptr)->data.getPosition(px, py);
@@ -204,8 +177,7 @@ public:
             node_ptr_list.push_back(node_ptr);
         }
 
-        for (std::shared_ptr<SkeletonGraphNode> node_ptr : node_ptr_list)
-        {
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : node_ptr_list) {
             int32_t px, py;
             node_ptr->data.getPosition(px, py);
             std::vector<int32_t> point{px, py};
@@ -215,16 +187,12 @@ public:
         /// Set edge information
         m_map_hash2index_.clear();
         m_edge_list_.clear();
-        for (int32_t index = 0; index < node_ptr_list.size(); index++)
-        {
+        for (int32_t index = 0; index < node_ptr_list.size(); index++) {
             m_map_hash2index_.insert({node_ptr_list[index]->data.getHash(), index});
         }
-        for (std::shared_ptr<SkeletonGraphNode> node_ptr : node_ptr_list)
-        {
-            for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
-            {
-                if (m_map_hash2index_.count(edge_ptr->data.dst) == 0)
-                    continue;
+        for (std::shared_ptr<SkeletonGraphNode> node_ptr : node_ptr_list) {
+            for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom) {
+                if (m_map_hash2index_.count(edge_ptr->data.dst) == 0) continue;
                 std::vector<int32_t> edge{m_map_hash2index_.at(edge_ptr->data.src), m_map_hash2index_.at(edge_ptr->data.dst)};
                 m_edge_list_.push_back(edge);
             }
@@ -239,68 +207,47 @@ public:
         setLineLength();
     }
 
-    std::vector<std::vector<int32_t>> edges() const
-    {
-        return m_edge_list_;
-    }
+    std::vector<std::vector<int32_t>> edges() const { return m_edge_list_; }
 
-    int32_t hash2index(const Hash &node_hash) const
-    {
-        return m_map_hash2index_.at(node_hash);
-    }
+    int32_t hash2index(const Hash &node_hash) const { return m_map_hash2index_.at(node_hash); }
 
-    void addSkeletonPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void addSkeletonPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) {
         SkeletonGraphNode *node_ptr = accessByHash(node_hash, graph_helper_ptr);
         /// FORME: confirm in the case of kEndPointCluster + kJunctionPointCluster
-        if (node_ptr->data.getPointType() == PointType::kEndPoint)
-        {
+        if (node_ptr->data.getPointType() == PointType::kEndPoint) {
             m_cluster_type_ = LinearClusterType::kEndPointCluster;
-        }
-        else if (node_ptr->data.getPointType() == PointType::kJunctionPoint)
-        {
+        } else if (node_ptr->data.getPointType() == PointType::kJunctionPoint) {
             m_cluster_type_ = LinearClusterType::kJunctionPointCluster;
         }
         m_node_hash_list_.push_back(node_hash);
     }
 
-    void fitLine(SkeletonGraphHelperPtr graph_helper_ptr)
-    {
-        if (size() == 1)
-        {
+    void fitLine(SkeletonGraphHelperPtr graph_helper_ptr) {
+        if (size() == 1) {
             int32_t px, py;
             accessByIndex(0, graph_helper_ptr)->data.getPosition(px, py);
             m_line_model_.set(1.0, 0, px, py);
-        }
-        else if (size() == 2)
-        {
+        } else if (size() == 2) {
             int32_t p0x, p0y;
             accessByIndex(0, graph_helper_ptr)->data.getPosition(p0x, p0y);
             int32_t p1x, p1y;
             accessByIndex(1, graph_helper_ptr)->data.getPosition(p1x, p1y);
             m_line_model_.set(p0x, p0y, p1x, p1y);
-        }
-        else
-        {
+        } else {
             float n_x, n_y, n_constant;
             fitLineBySVD(n_x, n_y, n_constant, graph_helper_ptr);
             m_line_model_.set(n_x, n_y, n_constant);
         }
     }
 
-    float getFittingError(const float &p_x, const float &p_y)
-    {
-        return m_line_model_.get_fit_error(p_x, p_y);
-    }
+    float getFittingError(const float &p_x, const float &p_y) { return m_line_model_.get_fit_error(p_x, p_y); }
 
-    float getMeanSquaredError(SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    float getMeanSquaredError(SkeletonGraphHelperPtr graph_helper_ptr) {
         float sum_error = 0;
 
         // TODO: Use reduce
         int32_t n_points = m_node_hash_list_.size();
-        for (int32_t i = 0; i < n_points; i++)
-        {
+        for (int32_t i = 0; i < n_points; i++) {
             int32_t px, py;
             accessByIndex(i, graph_helper_ptr)->data.getPosition(px, py);
             sum_error += getFittingError(px, py);
@@ -308,44 +255,25 @@ public:
         return sum_error / n_points;
     }
 
-    std::vector<int32_t> getEndPointIndices() const
-    {
-        return m_end_point_indices_;
-    }
+    std::vector<int32_t> getEndPointIndices() const { return m_end_point_indices_; }
 
-    std::vector<int32_t> getJunctionPointIndices() const
-    {
-        return m_junction_point_indices_;
-    }
+    std::vector<int32_t> getJunctionPointIndices() const { return m_junction_point_indices_; }
 
-    std::vector<SkeletonGraphNode *> getEndPointPtrList(SkeletonGraphHelperPtr graph_helper_ptr) const
-    {
+    std::vector<SkeletonGraphNode *> getEndPointPtrList(SkeletonGraphHelperPtr graph_helper_ptr) const {
         std::vector<SkeletonGraphNode *> node_ptr_list_end_points;
-        std::transform(
-            m_end_point_indices_.begin(), m_end_point_indices_.end(),
-            std::back_inserter(node_ptr_list_end_points),
-            [&](const Hash &point_index)
-            {
-                return accessByIndex(point_index, graph_helper_ptr);
-            });
+        std::transform(m_end_point_indices_.begin(), m_end_point_indices_.end(), std::back_inserter(node_ptr_list_end_points),
+                       [&](const Hash &point_index) { return accessByIndex(point_index, graph_helper_ptr); });
         return node_ptr_list_end_points;
     }
 
-    std::vector<SkeletonGraphNode *> getJunctionPointPtrList(SkeletonGraphHelperPtr graph_helper_ptr) const
-    {
+    std::vector<SkeletonGraphNode *> getJunctionPointPtrList(SkeletonGraphHelperPtr graph_helper_ptr) const {
         std::vector<SkeletonGraphNode *> node_ptr_list_junction_points;
-        std::transform(
-            m_junction_point_indices_.begin(), m_junction_point_indices_.end(),
-            std::back_inserter(node_ptr_list_junction_points),
-            [&](const Hash &point_index)
-            {
-                return accessByIndex(point_index, graph_helper_ptr);
-            });
+        std::transform(m_junction_point_indices_.begin(), m_junction_point_indices_.end(), std::back_inserter(node_ptr_list_junction_points),
+                       [&](const Hash &point_index) { return accessByIndex(point_index, graph_helper_ptr); });
         return node_ptr_list_junction_points;
     }
 
-    std::vector<int32_t> projectionPointToLine(const std::vector<int32_t> &point)
-    {
+    std::vector<int32_t> projectionPointToLine(const std::vector<int32_t> &point) {
         float p_x = static_cast<float>(point[0]);
         float p_y = static_cast<float>(point[1]);
         float distance_to_line = p_x * m_line_model_.n_x() + p_y * m_line_model_.n_y() + m_line_model_.n_constant();
@@ -355,30 +283,52 @@ public:
         return projected_point;
     }
 
-private:
-    inline SkeletonGraphNode *accessByIndex(const int32_t &node_index, SkeletonGraphHelperPtr graph_helper_ptr) const
-    {
+    void setInputImageSize(const int32_t &image_width, const int32_t &image_height) {
+        m_input_image_width_ = image_width;
+        m_input_image_height_ = image_height;
+    }
+
+    std::vector<int32_t> getInputImageSize() const {
+        std::vector<int32_t> image_size{m_input_image_width_, m_input_image_height_};
+        return image_size;
+    }
+
+    void rescale(const int32_t &image_width, const int32_t &image_height) {
+        CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
+        int32_t image_width_previous = m_input_image_width_;
+        int32_t image_height_previous = m_input_image_height_;
+
+        float scale_width = static_cast<float>(image_width) / image_width_previous;
+        float scale_height = static_cast<float>(image_height) / image_height_previous;
+        CV_Assert(scale_width == scale_height);
+        int32_t scale = scale_width;
+
+        setInputImageSize(image_width, image_height);
+        m_line_length_ *= scale;
+        m_point_list_ = rescale_point_list(m_point_list_, scale);
+        m_projected_point_list_ = rescale_point_list(m_projected_point_list_, scale);
+        m_line_model_.rescale(scale);
+    }
+
+   private:
+    inline SkeletonGraphNode *accessByIndex(const int32_t &node_index, SkeletonGraphHelperPtr graph_helper_ptr) const {
         return graph_helper_ptr->getNodePtr(m_node_hash_list_[node_index]);
     }
 
-    inline SkeletonGraphNode *accessByHash(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) const
-    {
+    inline SkeletonGraphNode *accessByHash(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) const {
         return graph_helper_ptr->getNodePtr(node_hash);
     }
 
-    void normal(float &n_x, float &n_y)
-    {
+    void normal(float &n_x, float &n_y) {
         n_x = m_line_model_.n_x();
         n_y = m_line_model_.n_y();
     }
 
-    void fitLineBySVD(float &n_x_output, float &n_y_output, float &constant_output, SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void fitLineBySVD(float &n_x_output, float &n_y_output, float &constant_output, SkeletonGraphHelperPtr graph_helper_ptr) {
         Matrix2DPoints mat_points;
         mat_points.resize(3, m_node_hash_list_.size());
         int32_t n_points = m_node_hash_list_.size();
-        for (int32_t i = 0; i < n_points; i++)
-        {
+        for (int32_t i = 0; i < n_points; i++) {
             int32_t px, py;
             accessByIndex(i, graph_helper_ptr)->data.getPosition(px, py);
             mat_points(0, i) = px;
@@ -392,22 +342,17 @@ private:
         constant_output = u(2, 2);
     }
 
-    bool isEndPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) const
-    {
+    bool isEndPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) const {
         SkeletonGraphNode *node_ptr = accessByHash(node_hash, graph_helper_ptr);
-        if (node_ptr->data.getPointType() == PointType::kEndPoint)
-            return true;
+        if (node_ptr->data.getPointType() == PointType::kEndPoint) return true;
 
         int32_t num_edge = 0;
-        for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom)
-        {
+        for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom) {
             int32_t label_dst = accessByHash(edge_ptr->data.dst, graph_helper_ptr)->data.getLabel();
-            if (m_cluster_label_ != label_dst)
-                return true;
+            if (m_cluster_label_ != label_dst) return true;
             num_edge++;
         }
-        if (num_edge < 2)
-        {
+        if (num_edge < 2) {
             return true;
         }
         return false;
@@ -416,14 +361,11 @@ private:
     /*
     Store end points in the sense of linear cluster
     */
-    void setEndPointIndices(SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void setEndPointIndices(SkeletonGraphHelperPtr graph_helper_ptr) {
         m_end_point_indices_.clear();
         int32_t index = 0;
-        for (Hash node_hash : m_node_hash_list_)
-        {
-            if (isEndPoint(node_hash, graph_helper_ptr))
-                m_end_point_indices_.push_back(index);
+        for (Hash node_hash : m_node_hash_list_) {
+            if (isEndPoint(node_hash, graph_helper_ptr)) m_end_point_indices_.push_back(index);
             index++;
         }
     }
@@ -431,52 +373,37 @@ private:
     /*
     Store PointType::kJunctionPoint points
     */
-    void setJunctionPointIndices(SkeletonGraphHelperPtr graph_helper_ptr)
-    {
+    void setJunctionPointIndices(SkeletonGraphHelperPtr graph_helper_ptr) {
         m_junction_point_indices_.clear();
         int32_t index = 0;
-        for (Hash node_hash : m_node_hash_list_)
-        {
+        for (Hash node_hash : m_node_hash_list_) {
             if (accessByHash(node_hash, graph_helper_ptr)->data.getPointType() == PointType::kJunctionPoint)
                 m_junction_point_indices_.push_back(index);
             index++;
         }
     }
 
-    void setProjectedPointsToLine()
-    {
+    void setProjectedPointsToLine() {
         m_projected_point_list_.clear();
-        std::transform(
-            m_point_list_.begin(), m_point_list_.end(),
-            std::back_inserter(m_projected_point_list_),
-            [&](const std::vector<int32_t> point)
-            { return projectionPointToLine(point); });
+        std::transform(m_point_list_.begin(), m_point_list_.end(), std::back_inserter(m_projected_point_list_),
+                       [&](const std::vector<int32_t> point) { return projectionPointToLine(point); });
     }
 
-    std::vector<int32_t> getPointsValueX(const std::vector<std::vector<int32_t>> &point_list)
-    {
+    std::vector<int32_t> getPointsValueX(const std::vector<std::vector<int32_t>> &point_list) {
         std::vector<int32_t> projected_point_x_list;
-        std::transform(
-            point_list.begin(), point_list.end(),
-            std::back_inserter(projected_point_x_list),
-            [&](const std::vector<int32_t> point)
-            { return point[0]; });
+        std::transform(point_list.begin(), point_list.end(), std::back_inserter(projected_point_x_list),
+                       [&](const std::vector<int32_t> point) { return point[0]; });
         return projected_point_x_list;
     }
 
-    std::vector<int32_t> getPointsValueY(const std::vector<std::vector<int32_t>> &point_list)
-    {
+    std::vector<int32_t> getPointsValueY(const std::vector<std::vector<int32_t>> &point_list) {
         std::vector<int32_t> projected_point_y_list;
-        std::transform(
-            point_list.begin(), point_list.end(),
-            std::back_inserter(projected_point_y_list),
-            [&](const std::vector<int32_t> point)
-            { return point[1]; });
+        std::transform(point_list.begin(), point_list.end(), std::back_inserter(projected_point_y_list),
+                       [&](const std::vector<int32_t> point) { return point[1]; });
         return projected_point_y_list;
     }
 
-    void setLineLength()
-    {
+    void setLineLength() {
         std::vector<int32_t> projected_point_y_list = getPointsValueY(m_projected_point_list_);
         std::vector<int32_t>::iterator min_it = std::min_element(projected_point_y_list.begin(), projected_point_y_list.end());
         std::vector<int32_t>::iterator max_it = std::max_element(projected_point_y_list.begin(), projected_point_y_list.end());
@@ -487,11 +414,20 @@ private:
         m_line_length_ = std::sqrt(diff_x * diff_x + diff_y * diff_y);
     }
 
+    std::vector<std::vector<int32_t>> rescale_point_list(const std::vector<std::vector<int32_t>> &point_list, const float &scale) {
+        std::vector<std::vector<int32_t>> point_list_rescaled;
+        std::transform(point_list.begin(), point_list.end(), std::back_inserter(point_list_rescaled), [&](std::vector<int32_t> point) {
+            return std::vector<int32_t>{static_cast<int32_t>(point[0] * scale), static_cast<int32_t>(point[1] * scale)};
+        });
+        return point_list_rescaled;
+    }
+
     LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
 
     float m_line_length_;
+    int32_t m_input_image_width_, m_input_image_height_;
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     std::vector<std::vector<int32_t>> m_point_list_;
     std::vector<std::vector<int32_t>> m_projected_point_list_;
@@ -499,26 +435,25 @@ private:
     std::vector<std::vector<int32_t>> m_edge_list_;
     std::vector<int32_t> m_end_point_indices_;
     std::vector<int32_t> m_junction_point_indices_;
-    LinearCluster *m_parent_;
     LineCoeff m_line_model_;
 
-    int32_t m_index_argmin_p_y_, m_index_argmax_p_y_; //mainly for debug
+    int32_t m_index_argmin_p_y_, m_index_argmax_p_y_;  // mainly for debug
 };
 
 /*
 Return connectivity relation between two clusters
 */
 // TODO: write more simply
-void identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr, std::vector<std::vector<int32_t>> &index_pairs_mutual_clusters, std::vector<std::vector<Hash>> &point_index_pairs_mutual_clusters)
-{
+void identificateClusterConnection(const std::vector<LinearCluster> &linear_cluster_list, SkeletonGraphHelperPtr graph_helper_ptr,
+                                   std::vector<std::vector<int32_t>> &index_pairs_mutual_clusters,
+                                   std::vector<std::vector<Hash>> &point_index_pairs_mutual_clusters) {
     index_pairs_mutual_clusters.clear();
     point_index_pairs_mutual_clusters.clear();
 
     // Set searching target points in each cluster
     int32_t n_clusters = linear_cluster_list.size();
     std::vector<std::vector<SkeletonGraphNode *>> search_point_ptr_list_each_cluster;
-    for (int32_t index_cluster = 0; index_cluster < n_clusters; index_cluster++)
-    {
+    for (int32_t index_cluster = 0; index_cluster < n_clusters; index_cluster++) {
         std::vector<SkeletonGraphNode *> search_point_ptrs;
         std::vector<SkeletonGraphNode *> end_point_ptr_list = linear_cluster_list[index_cluster].getEndPointPtrList(graph_helper_ptr);
         std::vector<SkeletonGraphNode *> junction_point_ptr_list = linear_cluster_list[index_cluster].getJunctionPointPtrList(graph_helper_ptr);
@@ -528,34 +463,27 @@ void identificateClusterConnection(const std::vector<LinearCluster> &linear_clus
     }
 
     // Search cluster connection
-    for (int32_t index_cluster = 0; index_cluster < n_clusters; index_cluster++)
-    {
+    for (int32_t index_cluster = 0; index_cluster < n_clusters; index_cluster++) {
         std::vector<SkeletonGraphNode *> search_point_ptr_list = search_point_ptr_list_each_cluster[index_cluster];
-        for (int32_t index_cluster_compare = 0; index_cluster_compare < n_clusters; index_cluster_compare++)
-        {
-            if (index_cluster <= index_cluster_compare)
-                continue;
+        for (int32_t index_cluster_compare = 0; index_cluster_compare < n_clusters; index_cluster_compare++) {
+            if (index_cluster <= index_cluster_compare) continue;
             std::vector<SkeletonGraphNode *> search_point_ptr_list_compare = search_point_ptr_list_each_cluster[index_cluster_compare];
 
             // check connectivity between two end points
             bool exists_edge = false;
             Hash search_point_hash, search_point_hash_compare;
-            for (SkeletonGraphNode *search_point_ptr : search_point_ptr_list)
-            {
-                for (SkeletonGraphNode *search_point_ptr_compare : search_point_ptr_list_compare)
-                {
+            for (SkeletonGraphNode *search_point_ptr : search_point_ptr_list) {
+                for (SkeletonGraphNode *search_point_ptr_compare : search_point_ptr_list_compare) {
                     search_point_hash = search_point_ptr->data.getHash();
                     search_point_hash_compare = search_point_ptr_compare->data.getHash();
                     exists_edge |= graph_helper_ptr->existsEdge(search_point_hash, search_point_hash_compare);
-                    if (exists_edge)
-                        break;
+                    if (exists_edge) break;
                 }
-                if (exists_edge)
-                    break;
+                if (exists_edge) break;
             }
-            if (exists_edge)
-            {
-                /// Actual mutual connectivity is undirectional, but for simplify, store unique combination of index pair will be stored.
+            if (exists_edge) {
+                /// Actual mutual connectivity is undirectional, but for simplify, store
+                /// unique combination of index pair will be stored.
                 std::vector<int32_t> cluster_index_pair{index_cluster, index_cluster_compare};
                 index_pairs_mutual_clusters.push_back(cluster_index_pair);
 
@@ -568,4 +496,4 @@ void identificateClusterConnection(const std::vector<LinearCluster> &linear_clus
     }
 }
 
-#endif // PYSKELETON2GRAPH_INCLUDE_LINEAR_CLUSTER_H_
+#endif  // PYSKELETON2GRAPH_INCLUDE_LINEAR_CLUSTER_H_

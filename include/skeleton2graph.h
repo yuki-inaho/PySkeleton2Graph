@@ -147,6 +147,7 @@ public:
     for (std::vector<Hash> hash_list_cc : hash_list_each_cc)
     {
       LinearCluster linear_cluster(cluster_index);
+      linear_cluster.setInputImageSize(m_image_width_, m_image_height_);
       for (Hash hash : hash_list_cc)
       {
         linear_cluster.addSkeletonPoint(hash, m_graph_helper_ptr_);
