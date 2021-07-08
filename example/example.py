@@ -1,9 +1,11 @@
+from os import write
 import cv2
 import numpy as np
 from pathlib import Path
 from s2g import Skeleton2GraphHelper
-from utils import draw_mutual_cluster_connection, draw_line_segments, draw_graph, show_image, write_image
-#from skimage.morphology import thin, skeletonize
+from utils import SkeletonGraphPainter, LinearClusterPainter, show_image, write_image
+
+# from skimage.morphology import thin, skeletonize
 
 SCRIPT_DIR = str(Path().parent)
 
@@ -14,8 +16,8 @@ Skeleton to Graph convertion
 scale = 2.0
 skeleton_image = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 image_height, image_width = skeleton_image.shape
-#skeleton_image = cv2.resize(skeleton_image, None, fx = 3, fy=3, interpolation=cv2.INTER_NEAREST)
-#skeleton_image= thin(skeleton_image // 255).astype(np.uint8) * 255
+# skeleton_image = cv2.resize(skeleton_image, None, fx = 3, fy=3, interpolation=cv2.INTER_NEAREST)
+# skeleton_image= thin(skeleton_image // 255).astype(np.uint8) * 255
 
 s2g = Skeleton2GraphHelper(simplification_threshold=15.0, directional_threshold=30.0)
 s2g.set_frame(skeleton_image)
@@ -37,33 +39,33 @@ Output results
 image_to_show = cv2.cvtColor(skeleton_image, cv2.COLOR_GRAY2BGR)
 
 ### Output raw skeleton
-# show_image(image_to_show, scale=2)
-#write_image(skeleton_image, f"{SCRIPT_DIR}/results/input.png", scale=scale)
+graph_painter = SkeletonGraphPainter(point_diameter=2, edge_thickness=2)
+
+# show_image(graph_painter(skeleton_image, s2g, draw_simplified=False), scale=2)
+write_image(graph_painter(skeleton_image, s2g, draw_simplified=False), f"{SCRIPT_DIR}/results/input.png", scale=scale)
 
 ### Output graph extraction result
-#show_image(draw_graph(image_to_show, node_init, edge_init), scale=scale)
-#show_image(draw_graph(image_to_show, node_simplified, edge_simplified), scale=scale)
-"""
-write_image(
-    draw_graph(image_to_show, node_simplified, edge_simplified, node_labels_simplified, edge_bold=2),
-    f"{SCRIPT_DIR}/results/graph.png",
-    scale=2,
-)
-"""
+# show_image(graph_painter(skeleton_image, s2g, draw_simplified=True), scale=scale)
+write_image(graph_painter(skeleton_image, s2g, draw_simplified=True), f"{SCRIPT_DIR}/results/graph.png", scale=scale)
 
 ### Output post-processing result
-image_to_show = draw_mutual_cluster_connection(image_to_show, linear_clusters, mutual_cluster_index_pairs, point_index_pairs_mutual_clusters)
-image_to_show = draw_line_segments(image_to_show, linear_clusters, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True)
-show_image(image_to_show, scale=scale)
-# write_image(image_to_show, f"{SCRIPT_DIR}/results/parsed.png", scale=scale)
+cluster_painter = LinearClusterPainter(point_diameter=2, edge_thickness=2)
+# show_image(cluster_painter(skeleton_image, linear_clusters, s2g, draw_fitted_line=True, draw_mutual_cluster_connections=True), scale=scale)
+write_image(
+    cluster_painter(skeleton_image, linear_clusters, s2g, draw_fitted_line=True, draw_mutual_cluster_connections=True),
+    f"{SCRIPT_DIR}/results/parsed.png",
+    scale=scale,
+)
 
 ### rescale check
-"""
-image_to_show = cv2.resize(image_to_show, None, fx=scale, fy=scale)
+image_to_show = cv2.resize(cv2.cvtColor(skeleton_image, cv2.COLOR_GRAY2BGR), None, fx=scale, fy=scale)
 image_height_scale = int(image_height * scale)
 image_width_scale = int(image_width * scale)
-[linear_cluster.rescale(image_width_scale, image_height_scale) for linear_cluster in  linear_clusters]
-image_to_show = draw_mutual_cluster_connection(image_to_show, linear_clusters, mutual_cluster_index_pairs, point_index_pairs_mutual_clusters)
-image_to_show = draw_line_segments(image_to_show, linear_clusters, circle_diameter=3, edge_bold=3, with_end_point=True, with_fitted_line=True)
-show_image(image_to_show)
-"""
+[linear_cluster.rescale(image_width_scale, image_height_scale) for linear_cluster in linear_clusters]
+cluster_painter = LinearClusterPainter(point_diameter=4, edge_thickness=3)
+# show_image(cluster_painter(image_to_show, linear_clusters, s2g, draw_fitted_line=True, draw_mutual_cluster_connections=True), scale=1.0)
+write_image(
+    cluster_painter(image_to_show, linear_clusters, s2g, draw_fitted_line=True, draw_mutual_cluster_connections=True),
+    f"{SCRIPT_DIR}/results/parsed.png",
+    scale=1.0,
+)

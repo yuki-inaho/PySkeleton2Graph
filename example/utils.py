@@ -1,95 +1,145 @@
 import cv2
 import numpy as np
 from pys2g import LinearCluster
-from typing import List
+from s2g import Skeleton2GraphHelper
+from typing import List, Optional
 
 
-def draw_graph(image, points, edges, label=None, circle_diameter=2, edge_bold=1, draw_cluster_info=False):
-    assert (len(image.shape) == 3) and (image.shape[-1] == 3)
-    draw_frame = image.copy()
-    if (label is None) or (~draw_cluster_info):
-        for edge in edges:
-            p_from = points[edge[0]]
-            p_to = points[edge[1]]
-            cv2.line(draw_frame, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (255, 0, 0), edge_bold)
-        for point in points:
-            cv2.circle(draw_frame, (point[0], point[1]), circle_diameter, (0, 0, 255), -1)
-    else:
-        label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
-        for i, point in enumerate(points):
-            cv2.circle(label_img_temp, (point[0], point[1]), circle_diameter, (label[i]), -1)
-        for i, edge in enumerate(edges):
-            p_from = points[edge[0]]
-            p_to = points[edge[1]]
-            cv2.line(label_img_temp, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (label[edge[0]]), edge_bold)
-        label_img_normalized = (label_img_temp - label_img_temp.min()) / (label_img_temp.max() - label_img_temp.min())
-        label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
-        label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
-        draw_frame[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
+class SkeletonGraphPainter(object):
+    def __init__(self, point_diameter: int = 2, edge_thickness: int = 2):
+        self._point_diameter: int = point_diameter
+        self._edge_thickness: int = edge_thickness
+        self._image_to_draw: Optional[np.ndarray] = None
+        self._s2g: Optional[Skeleton2GraphHelper] = None
+        self._image_width = 0
+        self._image_height = 0
 
-    return draw_frame
+    def __call__(self, image: np.ndarray, s2g: Skeleton2GraphHelper, draw_simplified=False) -> np.ndarray:
+        self.set_image(image)
+        self.set_converter(s2g, draw_simplified)
+        self.draw_edges()
+        self.draw_nodes()
+        return self.image
+
+    def set_image(self, image: np.ndarray):
+        if len(image.shape) < 3:
+            self._image_to_draw = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        else:
+            self._image_to_draw = image
+
+    def set_converter(self, s2g: Skeleton2GraphHelper, draw_simplified=False):
+        self._s2g = s2g
+        if not draw_simplified:
+            self._nodes, self._edges = s2g.initial_graph_elements
+        else:
+            self._nodes, self._edges = s2g.simplified_graph_elements
+
+    def draw_nodes(self):
+        for point in self._nodes:
+            cv2.circle(self._image_to_draw, (point[0], point[1]), self._point_diameter, (0, 0, 255), -1)
+
+    def draw_edges(self):
+        for edge in self._edges:
+            p_from = self._nodes[edge[0]]
+            p_to = self._nodes[edge[1]]
+            cv2.line(self._image_to_draw, (p_from[0], p_from[1]), (p_to[0], p_to[1]), (255, 0, 0), self._edge_thickness)
+
+    @property
+    def image(self):
+        return self._image_to_draw
 
 
-def draw_line_segments(image, line_segments: List[LinearCluster], circle_diameter=2, edge_bold=1, with_end_point=False, with_fitted_line=False):
-    n_segments = len(line_segments)
-    draw_frame = image.copy()
-    for label_m1, line_segment in enumerate(line_segments):
+class LinearClusterPainter(object):
+    def __init__(self, point_diameter: int = 2, edge_thickness: int = 2):
+        self._point_diameter: int = point_diameter
+        self._edge_thickness: int = edge_thickness
+        self._image_to_draw: Optional[np.ndarray] = None
+        self._s2g: Optional[Skeleton2GraphHelper] = None
+        self._linear_clusters: Optional[List[LinearCluster]] = None
+        self._image_width = 0
+        self._image_height = 0
+
+    def __call__(
+        self,
+        image: np.ndarray,
+        linear_clusters: List[LinearCluster],
+        s2g: Skeleton2GraphHelper,
+        draw_fitted_line: bool = False,
+        draw_mutual_cluster_connections: bool = False,
+    ) -> np.ndarray:
+        self.set_image(image)
+        self.set_clusters(linear_clusters)
+        self.set_converter(s2g)
+        self.draw_categorized_edges()
+        if draw_mutual_cluster_connections:
+            self.draw_cluster_connection_bridge()
+        self.draw_end_points()
+        if draw_fitted_line:
+            self.draw_line_models()
+        return self.image
+
+    def set_image(self, image: np.ndarray):
+        if len(image.shape) < 3:
+            self._image_to_draw = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        else:
+            self._image_to_draw = image
+
+    def set_converter(self, s2g: Skeleton2GraphHelper):
+        self._s2g = s2g
+        self._nodes, self._edges = s2g.simplified_graph_elements
+
+    def set_clusters(self, linear_clusters: List[LinearCluster]):
+        self._linear_clusters = linear_clusters
+
+    def draw_end_points(self):
+        for linear_cluster in self._linear_clusters:
+            cluster_points = linear_cluster.points()
+            end_points = [cluster_points[end_point_index] for end_point_index in linear_cluster.indices_end_points()]
+            for point in end_points:
+                cv2.circle(self._image_to_draw, (point[0], point[1]), int(self._point_diameter * 1.5), (0, 0, 255), -1)
+
+    def draw_categorized_edges(self):
         """
         Draw line and points
         """
-        points = line_segment.points()
-        edges = line_segment.edges()
-        label = label_m1 + 1
-        label_img_temp = np.zeros((draw_frame.shape[0], draw_frame.shape[1]), dtype=np.uint8)
-        for i, point in enumerate(points):
-            cv2.circle(label_img_temp, (point[0], point[1]), circle_diameter, label, -1)
-        for i, edge in enumerate(edges):
-            p_from = points[edge[0]]
-            p_to = points[edge[1]]
-            cv2.line(label_img_temp, (p_from[0], p_from[1]), (p_to[0], p_to[1]), label, edge_bold)
-        label_img_normalized = label_img_temp / n_segments
-        label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
-        label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
-        draw_frame[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
+        for label_m1, line_segment in enumerate(self._linear_clusters):
+            # convert {0,255}-binary image to labelled image
+            label_var = label_m1 + 1
+            label_img_temp = (line_segment.binary_mask(self._edge_thickness)).astype(np.float) / 255 * label_var
+            label_img_normalized = label_img_temp / self.n_clusters
+            label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
+            label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0
+            self._image_to_draw[np.where(label_img_colorized > 0)] = label_img_colorized[np.where(label_img_colorized > 0)]
 
-        """
-        Draw end points
-        """
-        if with_end_point:
-            end_points = [points[end_point_index] for end_point_index in line_segment.indices_end_points()]
-            for point in end_points:
-                cv2.circle(draw_frame, (point[0], point[1]), int(circle_diameter * 1.5), (0, 0, 255), -1)
-
-        if with_fitted_line:
-            nx, ny, nconst = line_segment.line()
-            points_ary = np.asarray(points)
-            dist_mat = np.sqrt(np.sum((points_ary[np.newaxis, :, :] - points_ary[:, np.newaxis, :]) ** 2, axis=-1))
-            point_mean = points_ary.mean(0)
-            half_length_segment = np.max(dist_mat) / 2
-            line_direction = np.asarray([ny, -nx])
+    def draw_line_models(self):
+        for linear_cluster in self._linear_clusters:
+            cluster_points = np.array(linear_cluster.points())
+            line_direction = np.array(linear_cluster.direction())
+            point_highest_y = cluster_points[linear_cluster.point_index_lowest_y()]
+            point_lowest_y = cluster_points[linear_cluster.point_index_highest_y()]
+            point_mean = (point_highest_y + point_lowest_y) / 2
+            half_length_segment = linear_cluster.length() / 2
             p1 = point_mean - line_direction * half_length_segment
             p2 = point_mean + line_direction * half_length_segment
-            cv2.line(draw_frame, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 0, 0), 2)
-            cv2.line(draw_frame, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 255, 0), 1)
+            cv2.line(self._image_to_draw, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 0, 0), 2)
+            cv2.line(self._image_to_draw, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0, 255, 0), 1)
 
-    return draw_frame
+    def draw_cluster_connection_bridge(self):
+        mutual_cluster_index_pairs, point_index_pairs_mutual_clusters = self._s2g.cluster_connection_information
+        for cluster_index_pair, point_index_pair in zip(mutual_cluster_index_pairs, point_index_pairs_mutual_clusters):
+            cluster_a = self._linear_clusters[cluster_index_pair[0]]
+            cluster_b = self._linear_clusters[cluster_index_pair[1]]
+            p_a = np.asarray(cluster_a.points())[point_index_pair[0]]
+            p_b = np.asarray(cluster_b.points())[point_index_pair[1]]
+            cv2.line(self._image_to_draw, (p_a[0], p_a[1]), (p_b[0], p_b[1]), (0, 192, 200), 2)
 
+    @property
+    def image(self):
+        return self._image_to_draw
 
-def draw_mutual_cluster_connection(
-    image_to_show, line_segments: List[LinearCluster], mutual_cluster_index_pairs: List[int], point_index_pairs_mutual_clusters: List[int]
-):
-    n_mutual_cluster_edge = 0
-    for cluster_index_pair, point_index_pair in zip(mutual_cluster_index_pairs, point_index_pairs_mutual_clusters):
-        cluster_a = line_segments[cluster_index_pair[0]]
-        cluster_b = line_segments[cluster_index_pair[1]]
-
-        p_a = np.asarray(cluster_a.points())[point_index_pair[0]]
-        p_b = np.asarray(cluster_b.points())[point_index_pair[1]]
-        # print(f"{p_a}, {p_b}")
-        cv2.line(image_to_show, (p_a[0], p_a[1]), (p_b[0], p_b[1]), (0, 192, 200), 2)
-        n_mutual_cluster_edge += 1
-    print(f"n_mutual_cluster_edge: {int(n_mutual_cluster_edge)}")
-    return image_to_show
+    @property
+    def n_clusters(self):
+        return len(self._linear_clusters)
 
 
 def show_image(image, title="image", scale=1.0):

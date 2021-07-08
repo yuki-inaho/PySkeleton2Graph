@@ -9,6 +9,8 @@
 #include <eigen3/Eigen/SVD>
 #endif
 
+#include <opencv2/opencv.hpp>
+
 #include "graph.h"
 #include "graph_helper.h"
 #include "pixel.h"
@@ -235,6 +237,7 @@ class LinearCluster {
             m_line_model_.set(p0x, p0y, p1x, p1y);
         } else {
             float n_x, n_y, n_constant;
+
             fitLineBySVD(n_x, n_y, n_constant, graph_helper_ptr);
             m_line_model_.set(n_x, n_y, n_constant);
         }
@@ -308,6 +311,25 @@ class LinearCluster {
         m_point_list_ = rescale_point_list(m_point_list_, scale);
         m_projected_point_list_ = rescale_point_list(m_projected_point_list_, scale);
         m_line_model_.rescale(scale);
+    }
+
+    cv::Mat getBinaryMask(const int32_t &thickness = 1) {
+        CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
+        CV_Assert(thickness >= 1);
+        cv::Mat image_graph_to_binary = cv::Mat::zeros(cv::Size(m_input_image_width_, m_input_image_height_), CV_8UC1);
+
+        /// point[0]: x-axis, point[1]: y-axis
+        for (std::vector<int32_t> point : m_point_list_) {
+            image_graph_to_binary.at<uchar>(point[1], point[0]) = 255;
+        }
+        for (std::vector<int32_t> edge : m_edge_list_) {
+            std::vector<int32_t> point_start = m_point_list_[edge[0]];
+            std::vector<int32_t> point_end = m_point_list_[edge[1]];
+            cv::Point point_cv_start{point_start[0], point_start[1]};
+            cv::Point point_cv_end{point_end[0], point_end[1]};
+            cv::line(image_graph_to_binary, point_cv_start, point_cv_end, cv::Scalar(255), thickness, cv::LINE_4);
+        }
+        return image_graph_to_binary;
     }
 
    private:
@@ -428,16 +450,19 @@ class LinearCluster {
 
     float m_line_length_;
     int32_t m_input_image_width_, m_input_image_height_;
+
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     std::vector<std::vector<int32_t>> m_point_list_;
     std::vector<std::vector<int32_t>> m_projected_point_list_;
+    int32_t m_index_argmin_p_y_, m_index_argmax_p_y_;
+
     std::vector<Hash> m_node_hash_list_;
     std::vector<std::vector<int32_t>> m_edge_list_;
+
     std::vector<int32_t> m_end_point_indices_;
     std::vector<int32_t> m_junction_point_indices_;
-    LineCoeff m_line_model_;
 
-    int32_t m_index_argmin_p_y_, m_index_argmax_p_y_;  // mainly for debug
+    LineCoeff m_line_model_;
 };
 
 /*

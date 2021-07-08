@@ -37,7 +37,8 @@ PYBIND11_MODULE(pys2g, m)
         .def("indices_end_points", &LinearCluster::getEndPointIndices)
         .def("set_image_size", &LinearCluster::setInputImageSize)
         .def("image_size", &LinearCluster::getInputImageSize)
-        .def("rescale", &LinearCluster::rescale);
+        .def("rescale", &LinearCluster::rescale)
+        .def("binary_mask", &LinearCluster::getBinaryMask);
     py::class_<Skeleton2Graph>(m, "Skeleton2Graph")
         .def(
             py::init<const float &, const float &>(),
