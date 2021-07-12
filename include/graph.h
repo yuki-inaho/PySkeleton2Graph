@@ -145,7 +145,6 @@ struct Edge
     Edge(NodePtr<ND, LD> from, NodePtr<ND, LD> to)
         : Edge<ND, LD>(LD(), from, to)
     {
-        from->graph.m_num_edges_++;
     }
 
     ~Edge()

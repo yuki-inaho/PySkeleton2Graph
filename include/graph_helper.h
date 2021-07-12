@@ -70,10 +70,15 @@ class GraphHelper {
         // Get peripheral node
         std::vector<Hash> hash_list_peripheral_node;
         for (Hash hash_node : hash_node_set) {
+            if (!hasNode(hash_node)) continue;
             std::vector<Hash> hash_list_neighbor = getNeighborHashList(hash_node);
             std::copy_if(hash_list_neighbor.begin(), hash_list_neighbor.end(), std::back_inserter(hash_list_peripheral_node),
                          [=](Hash hash) { return *std::find(hash_node_set.begin(), hash_node_set.end(), hash) != hash; });
         }
+
+        /// Make hash list unique
+        std::sort(hash_list_peripheral_node.begin(), hash_list_peripheral_node.end());
+        hash_list_peripheral_node.erase(std::unique(hash_list_peripheral_node.begin(), hash_list_peripheral_node.end()), hash_list_peripheral_node.end());
 
         for (Hash hash_node : hash_node_set) {
             if (!hasNode(hash_node)) continue;
@@ -159,8 +164,7 @@ class GraphHelper {
         }
 
         for (EdgePtr<ND, LD> edge_ptr = graph.firstEdge; edge_ptr; edge_ptr = edge_ptr->next) {
-            // Update node information
-            edge_ptr->data.resetPixelPair(edge_ptr->from->data, edge_ptr->to->data);
+            edge_ptr->data.resetPixelPair(edge_ptr->from->data, edge_ptr->to->data); /// Update node information
             m_map_hash_pair_to_edge_ptr_.insert({{edge_ptr->data.src, edge_ptr->data.dst}, edge_ptr});
         }
     }
@@ -276,6 +280,10 @@ class GraphHelper {
             m_node_label_list_[map_hash2index[node_ptr->data.getHash()]] = node_ptr->data.getLabel();
         }
     }
+
+    int32_t num_edge_graph_module_debug() { return graph.m_num_edges_; }
+
+    int32_t num_edge_map_debug() { return m_map_hash_pair_to_edge_ptr_.size(); }
 
    private:
     int8_t calcNodeConnectivity(const NodePtr<ND, LD> node_ptr) {

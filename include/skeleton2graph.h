@@ -78,9 +78,10 @@ class Skeleton2Graph {
             }
             if (max_connectivity > 0) {
                 m_graph_helper_ptr_->compressNodeSet(hash_arg_max_connectivity, hash_list_clique);
+                m_graph_helper_ptr_->refreshGraphInfo();
             }
         }
-        m_graph_helper_ptr_->refreshGraphInfo();
+
         m_graph_helper_ptr_->validateGraphInfo();
 
         /*
