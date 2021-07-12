@@ -1,3 +1,4 @@
+import numpy as np
 from typing import List, Optional
 from pys2g import SkeletonFrame, Skeleton2Graph, LinearCluster
 from decorator import timeit
@@ -30,7 +31,7 @@ class Skeleton2GraphHelper(object):
         self._edge_init = self._s2g.get_edges()
 
     @timeit
-    def analyze_graph(self):
+    def analyze_graph(self, distance_image: Optional[np.ndarray]=None):
         self._s2g.simplify()
         self._s2g.clustering()
         self._node_simplified = self._s2g.get_node_positions()
@@ -60,3 +61,7 @@ class Skeleton2GraphHelper(object):
     @property
     def cluster_connection_information(self):
         return self._mutual_cluster_index_pairs, self._point_index_pairs_mutual_clusters
+
+    @property
+    def skeleton_simplified(self):
+        return self._s2g.skeleton_simplified()

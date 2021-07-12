@@ -118,8 +118,6 @@ class Skeleton2Graph {
         m_edge_list_output_ = m_graph_helper_ptr_->getEdges();
     }
 
-    void edgeRemovalWithDistanceTransform(const cv::Mat &distance_transform_image) {}
-
     /*
     Execute directional connected component labelling
     */
@@ -167,6 +165,20 @@ class Skeleton2Graph {
     std::vector<std::vector<int32_t>> getMutualClusterIndexPairs() const { return m_index_pairs_mutual_clusters_; }
 
     std::vector<std::vector<int32_t>> getPointIndexPairsMutualClusters() const { return m_point_index_pairs_mutual_clusters_; }
+
+    cv::Mat getSkeletonSimplified(const int32_t &thickness = 1) const {
+        cv::Mat skeleton_simplified = cv::Mat::zeros(cv::Size(m_image_width_, m_image_height_), CV_8UC1);
+        int32_t n_clusters = m_linear_cluster_list_.size();
+        for (int32_t i = 0; i < n_clusters; i++) {
+            cv::Mat binary_mask = m_linear_cluster_list_[i].getBinaryMask(thickness);
+            for (int32_t y = 0; y < m_image_height_; y++) {
+                for (int32_t x = 0; x < m_image_width_; x++) {
+                    if (binary_mask.at<uchar>(y, x) > 0) skeleton_simplified.at<uchar>(y, x) = 255;
+                }
+            }
+        }
+        return skeleton_simplified;
+    }
 
     void printNodeInfo() {
         std::vector<Hash> hash_list = m_graph_helper_ptr_->getHashList();

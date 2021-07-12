@@ -313,7 +313,7 @@ class LinearCluster {
         m_line_model_.rescale(scale);
     }
 
-    cv::Mat getBinaryMask(const int32_t &thickness = 1) {
+    cv::Mat getBinaryMask(const int32_t &thickness = 1) const {
         CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
         CV_Assert(thickness >= 1);
         cv::Mat image_graph_to_binary = cv::Mat::zeros(cv::Size(m_input_image_width_, m_input_image_height_), CV_8UC1);

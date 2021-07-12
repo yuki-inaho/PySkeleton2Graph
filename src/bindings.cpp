@@ -45,5 +45,6 @@ PYBIND11_MODULE(pys2g, m) {
         .def("get_point_index_pair_mutual_clusters", &Skeleton2Graph::getPointIndexPairsMutualClusters)
         .def("get_node_labels", &Skeleton2Graph::getNodeLabels)
         .def("get_node_positions", &Skeleton2Graph::getNodePositions)
-        .def("get_edges", &Skeleton2Graph::getEdges);
+        .def("get_edges", &Skeleton2Graph::getEdges)
+        .def("skeleton_simplified", &Skeleton2Graph::getSkeletonSimplified, py::arg("thickness") = 1);
 }
