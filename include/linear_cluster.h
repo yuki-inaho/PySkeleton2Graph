@@ -79,7 +79,7 @@ class LineCoeff {
 
     /*
         line model:       n_x * (x - c_x) + n_y * (y - c_y) = 0
-                        or (n_const = - n_x * c_x - n_y * c_y),
+                                                or (n_const = - n_x * c_x - n_y * c_y),
                                 n_x * x + n_y * y + n_const = 0
 
                         s.t.
@@ -237,7 +237,6 @@ class LinearCluster {
             m_line_model_.set(p0x, p0y, p1x, p1y);
         } else {
             float n_x, n_y, n_constant;
-
             fitLineBySVD(n_x, n_y, n_constant, graph_helper_ptr);
             m_line_model_.set(n_x, n_y, n_constant);
         }

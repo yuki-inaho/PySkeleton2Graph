@@ -26,6 +26,9 @@ public:
         }
     }
 
+    /*
+    Pruning graph node to reduce skeleton density
+    */
     void searchPruneTarget()
     {
         int32_t n_node = m_graph_helper_ptr_->size();
@@ -37,11 +40,9 @@ public:
         {
             if (is_visited[hash2index(hash_end_point)])
                 continue;
-
             cumulative_distance = 0;
             depth_search_prune_target(hash_end_point, -1, is_visited, is_prune_target, cumulative_distance);
         }
-
         m_is_prune_target_.clear();
         std::copy(is_prune_target.begin(), is_prune_target.end(), std::back_inserter(m_is_prune_target_));
     }
@@ -75,7 +76,6 @@ private:
             SkeletonGraphEdge *edge_ptr = m_graph_helper_ptr_->getEdgePtr(hash_v, hash_parent);
             PointType node_point_type = m_graph_helper_ptr_->getNodePtr(hash_v)->data.getPointType();
             cumulative_distance += edge_ptr->data.getEdgeLength();
-
             if (
                 cumulative_distance >= m_simplification_threshold_ ||
                 node_point_type != PointType::kBridgePoint)

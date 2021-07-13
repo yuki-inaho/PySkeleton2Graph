@@ -69,7 +69,6 @@ class Skeleton2Graph {
             for (Hash hash_tmp : hash_list_clique) {
                 if (!m_graph_helper_ptr_->hasNode(hash_tmp)) continue;
                 m_graph_helper_ptr_->getNodePtr(hash_tmp);
-
                 int32_t connectivity_tmp = m_graph_helper_ptr_->getNodePtr(hash_tmp)->data.getConnectivity();
                 if (max_connectivity < connectivity_tmp) {
                     max_connectivity = connectivity_tmp;
@@ -81,7 +80,6 @@ class Skeleton2Graph {
                 m_graph_helper_ptr_->refreshGraphInfo();
             }
         }
-
         m_graph_helper_ptr_->validateGraphInfo();
 
         /*
@@ -149,7 +147,6 @@ class Skeleton2Graph {
         for (int32_t i = 0; i < n_clusters; i++) {
             m_linear_cluster_list_[i].update(m_graph_helper_ptr_);
         }
-
         identificateClusterConnection(m_linear_cluster_list_, m_graph_helper_ptr_, m_index_pairs_mutual_clusters_,
                                       m_point_index_pairs_mutual_clusters_);
     }
