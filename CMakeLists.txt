@@ -40,9 +40,5 @@ pkg_check_modules(OpenCV REQUIRED opencv)
 include_directories(${OpenCV_CFLAGS})
 target_link_libraries(${PROJ_NAME} ${OpenCV_LDFLAGS})
 
-pkg_check_modules(eigen3 REQUIRED)
-include_directories(${eigen3_INCLUDE_DIRS})
-target_link_libraries(${PROJ_NAME} ${eigen3_LIBRARIES})
-
 target_link_libraries(${PROJ_NAME} ${PYTHON_LIBRARIES})
 target_link_libraries(${PROJ_NAME} PUBLIC Python3::NumPy)
