@@ -213,7 +213,7 @@ class LinearCluster {
         To include cluster-to-cluster bridge to binary mask 
         */
         addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
-        setBinaryMask(graph_helper_ptr);
+        setBinaryMask();
     }
 
     std::vector<std::vector<int32_t>> edges() const { return m_edge_list_; }
@@ -317,6 +317,8 @@ class LinearCluster {
         m_point_list_ = rescale_point_list(m_point_list_, scale);
         m_projected_point_list_ = rescale_point_list(m_projected_point_list_, scale);
         m_line_model_.rescale(scale);
+
+        setBinaryMask();
     }
 
     cv::Mat getBinaryMask() const { return m_image_graph_to_binary_; }
@@ -462,7 +464,7 @@ class LinearCluster {
         m_end_point_indices_ = end_point_indices_updated;
     }
 
-    void setBinaryMask(SkeletonGraphHelperPtr graph_helper_ptr) {
+    void setBinaryMask() {
         CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
         m_image_graph_to_binary_ = cv::Mat::zeros(cv::Size(m_input_image_width_, m_input_image_height_), CV_8UC1);
 
