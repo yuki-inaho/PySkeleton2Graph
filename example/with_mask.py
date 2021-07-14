@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from s2g import Skeleton2GraphHelper
-from utils import draw_mutual_cluster_connection, draw_line_segments, draw_graph, show_image, write_image
+from utils import show_image, write_image
 from decorator import timeit
 
 SCRIPT_DIR = str(Path().parent)
@@ -33,7 +33,7 @@ s2g.set_frame(skeleton_image)
 s2g.initialize_graph_state()
 node_init, edge_init = s2g.initial_graph_elements
 
-s2g.analyze_graph()
+s2g.analyze_graph(distance_image)
 node_list_simplified, edge_list_simplified = s2g.simplified_graph_elements
 node_labels_simplified = s2g.node_labels
 mutual_cluster_index_pairs, point_index_pairs_mutual_clusters = s2g.cluster_connection_information

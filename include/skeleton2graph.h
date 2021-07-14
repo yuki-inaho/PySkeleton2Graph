@@ -149,6 +149,9 @@ class Skeleton2Graph {
         }
         identificateClusterConnection(m_linear_cluster_list_, m_graph_helper_ptr_, m_index_pairs_mutual_clusters_,
                                       m_point_index_pairs_mutual_clusters_);
+        for (int32_t i = 0; i < n_clusters; i++) {
+            m_linear_cluster_list_[i].generateBinaryMask(m_graph_helper_ptr_);
+        }
     }
 
     std::vector<int32_t> getNodeLabels() const { return m_node_labels_output_; }

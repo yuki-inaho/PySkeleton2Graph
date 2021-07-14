@@ -203,12 +203,17 @@ class LinearCluster {
         /// Fit 2D points to line model
         fitLine(graph_helper_ptr);
         setEndPointIndices(graph_helper_ptr);
-        addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
         setJunctionPointIndices(graph_helper_ptr);
-        setBinaryMask(graph_helper_ptr);
-
         setProjectedPointsToLine();
         setLineLength();
+    }
+
+    void generateBinaryMask(SkeletonGraphHelperPtr graph_helper_ptr) {
+        /*
+        To include cluster-to-cluster bridge to binary mask 
+        */
+        addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
+        setBinaryMask(graph_helper_ptr);
     }
 
     std::vector<std::vector<int32_t>> edges() const { return m_edge_list_; }
@@ -315,6 +320,7 @@ class LinearCluster {
     }
 
     cv::Mat getBinaryMask() const { return m_image_graph_to_binary_; }
+    
 
    private:
     inline SkeletonGraphNode *accessByIndex(const int32_t &node_index, SkeletonGraphHelperPtr graph_helper_ptr) const {
