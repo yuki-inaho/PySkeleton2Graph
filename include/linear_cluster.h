@@ -212,7 +212,7 @@ class LinearCluster {
         /*
         To include cluster-to-cluster bridge to binary mask 
         */
-        addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
+        //addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
         setBinaryMask();
     }
 
