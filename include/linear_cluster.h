@@ -203,7 +203,9 @@ class LinearCluster {
         /// Fit 2D points to line model
         fitLine(graph_helper_ptr);
         setEndPointIndices(graph_helper_ptr);
+        addJunctionPointToClusterBesidesEndPoint(graph_helper_ptr);
         setJunctionPointIndices(graph_helper_ptr);
+        setBinaryMask(graph_helper_ptr);
 
         setProjectedPointsToLine();
         setLineLength();
@@ -312,24 +314,7 @@ class LinearCluster {
         m_line_model_.rescale(scale);
     }
 
-    cv::Mat getBinaryMask(const int32_t &thickness = 1) const {
-        CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
-        CV_Assert(thickness >= 1);
-        cv::Mat image_graph_to_binary = cv::Mat::zeros(cv::Size(m_input_image_width_, m_input_image_height_), CV_8UC1);
-
-        /// point[0]: x-axis, point[1]: y-axis
-        for (std::vector<int32_t> point : m_point_list_) {
-            image_graph_to_binary.at<uchar>(point[1], point[0]) = 255;
-        }
-        for (std::vector<int32_t> edge : m_edge_list_) {
-            std::vector<int32_t> point_start = m_point_list_[edge[0]];
-            std::vector<int32_t> point_end = m_point_list_[edge[1]];
-            cv::Point point_cv_start{point_start[0], point_start[1]};
-            cv::Point point_cv_end{point_end[0], point_end[1]};
-            cv::line(image_graph_to_binary, point_cv_start, point_cv_end, cv::Scalar(255), thickness, cv::LINE_4);
-        }
-        return image_graph_to_binary;
-    }
+    cv::Mat getBinaryMask() const { return m_image_graph_to_binary_; }
 
    private:
     inline SkeletonGraphNode *accessByIndex(const int32_t &node_index, SkeletonGraphHelperPtr graph_helper_ptr) const {
@@ -363,6 +348,10 @@ class LinearCluster {
         constant_output = u(2, 2);
     }
 
+    /*
+    End points of linear cluster is included not only end points of skeleton,
+    but also neighborhood points besides other cluster
+    */
     bool isEndPoint(const Hash &node_hash, SkeletonGraphHelperPtr graph_helper_ptr) const {
         SkeletonGraphNode *node_ptr = accessByHash(node_hash, graph_helper_ptr);
         if (node_ptr->data.getPointType() == PointType::kEndPoint) return true;
@@ -443,12 +432,54 @@ class LinearCluster {
         return point_list_rescaled;
     }
 
+    void addJunctionPointToClusterBesidesEndPoint(SkeletonGraphHelperPtr graph_helper_ptr) {
+        std::vector<int32_t> end_point_indices_updated;
+        for (int32_t end_point_index : m_end_point_indices_) {            
+            SkeletonGraphNode *node_ptr = accessByHash(m_node_hash_list_[end_point_index], graph_helper_ptr);
+            if (node_ptr->data.getPointType() == PointType::kEndPoint || node_ptr->data.getPointType() == PointType::kJunctionPoint) {
+                end_point_indices_updated.push_back(end_point_index);
+                continue;
+            }
+            int32_t edge_count = 0;
+            for (auto edge_ptr = node_ptr->firstOut; edge_ptr; edge_ptr = edge_ptr->nextInFrom) {
+                SkeletonGraphNode *node_dst_ptr = accessByHash(edge_ptr->data.dst, graph_helper_ptr);
+                int32_t label_dst = node_dst_ptr->data.getLabel();
+
+                if (m_cluster_label_ != label_dst) {
+                    addSkeletonPoint(edge_ptr->data.dst, graph_helper_ptr);
+                    end_point_indices_updated.push_back(edge_ptr->data.dst);
+                    edge_count++;
+                }
+            }
+            CV_Assert(edge_count < 2);
+        }
+        m_end_point_indices_ = end_point_indices_updated;
+    }
+
+    void setBinaryMask(SkeletonGraphHelperPtr graph_helper_ptr) {
+        CV_Assert(m_input_image_width_ > 0 && m_input_image_height_ > 0);
+        m_image_graph_to_binary_ = cv::Mat::zeros(cv::Size(m_input_image_width_, m_input_image_height_), CV_8UC1);
+
+        /// point[0]: x-axis, point[1]: y-axis
+        for (std::vector<int32_t> point : m_point_list_) {
+            m_image_graph_to_binary_.at<uchar>(point[1], point[0]) = 255;
+        }
+        for (std::vector<int32_t> edge : m_edge_list_) {
+            std::vector<int32_t> point_start = m_point_list_[edge[0]];
+            std::vector<int32_t> point_end = m_point_list_[edge[1]];
+            cv::Point point_cv_start{point_start[0], point_start[1]};
+            cv::Point point_cv_end{point_end[0], point_end[1]};
+            cv::line(m_image_graph_to_binary_, point_cv_start, point_cv_end, cv::Scalar(255), 1, cv::LINE_4);
+        }
+    }
+
     LinearClusterType m_cluster_type_;
     int32_t m_cluster_label_;
     float m_cluster_proximity_threshold_;
 
     float m_line_length_;
     int32_t m_input_image_width_, m_input_image_height_;
+    cv::Mat m_image_graph_to_binary_;
 
     std::unordered_map<Hash, int32_t> m_map_hash2index_;
     std::vector<std::vector<int32_t>> m_point_list_;

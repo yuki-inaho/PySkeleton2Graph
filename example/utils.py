@@ -58,6 +58,7 @@ class LinearClusterPainter(object):
         self._linear_clusters: Optional[List[LinearCluster]] = None
         self._image_width = 0
         self._image_height = 0
+        self._dilation_kernel = np.ones((self._edge_thickness // 2 * 2 + 1, self._edge_thickness // 2 * 2 + 1), dtype=np.uint8)
 
     def __call__(
         self,
@@ -105,7 +106,9 @@ class LinearClusterPainter(object):
         for label_m1, line_segment in enumerate(self._linear_clusters):
             # convert {0,255}-binary image to labelled image
             label_var = label_m1 + 1
-            label_img_temp = (line_segment.binary_mask(self._edge_thickness)).astype(np.float) / 255 * label_var
+            binary_mask = line_segment.binary_mask()
+            binary_mask_dilated = cv2.dilate(binary_mask, self._dilation_kernel)
+            label_img_temp = (binary_mask_dilated).astype(np.float) / 255 * label_var
             label_img_normalized = label_img_temp / self.n_clusters
             label_img_colorized = cv2.applyColorMap((255.0 * label_img_normalized).astype(np.uint8), cv2.COLORMAP_HSV)
             label_img_colorized[np.where(label_img_temp == 0)[0], np.where(label_img_temp == 0)[1], :] = 0

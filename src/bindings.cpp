@@ -34,7 +34,7 @@ PYBIND11_MODULE(pys2g, m) {
         .def("set_image_size", &LinearCluster::setInputImageSize)
         .def("image_size", &LinearCluster::getInputImageSize)
         .def("rescale", &LinearCluster::rescale)
-        .def("binary_mask", &LinearCluster::getBinaryMask, py::arg("thickness") = 1);
+        .def("binary_mask", &LinearCluster::getBinaryMask);
     py::class_<Skeleton2Graph>(m, "Skeleton2Graph")
         .def(py::init<const float &, const float &>(), py::arg("simplification_threshold"), py::arg("directional_threshold"))
         .def("set_frame", &Skeleton2Graph::setFrame)
@@ -46,5 +46,5 @@ PYBIND11_MODULE(pys2g, m) {
         .def("get_node_labels", &Skeleton2Graph::getNodeLabels)
         .def("get_node_positions", &Skeleton2Graph::getNodePositions)
         .def("get_edges", &Skeleton2Graph::getEdges)
-        .def("skeleton_simplified", &Skeleton2Graph::getSkeletonSimplified, py::arg("thickness") = 1);
+        .def("skeleton_simplified", &Skeleton2Graph::getSkeletonSimplified);
 }
