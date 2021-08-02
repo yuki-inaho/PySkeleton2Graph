@@ -159,9 +159,9 @@ class LinearCluster {
     */
     std::vector<std::vector<int32_t>> points() { return m_point_list_; }
 
-    int32_t highestPointIndex() const { return m_index_argmin_p_y_; }
+    int32_t topPointIndex() const { return m_index_argmin_p_y_; }
 
-    int32_t lowestPointIndex() const { return m_index_argmax_p_y_; }
+    int32_t bottomPointIndex() const { return m_index_argmax_p_y_; }
 
     /*
     Update intrinsic infromation of each clusters, after addSkeletonPoint()
