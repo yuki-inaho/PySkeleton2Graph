@@ -18,8 +18,7 @@ if (OPENMP_FOUND)
     MESSAGE("OPENMP IS ENABLED")
 endif()
 
-find_package(PythonLibs 3 REQUIRED)
-find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+find_package(Python3 3.6 EXACT COMPONENTS Interpreter Development NumPy REQUIRED)
 MESSAGE("PYTHON_INCLUDE_DIRS : " ${PYTHON_INCLUDE_DIRS})
 MESSAGE("PYTHON_LIBRARIES : " ${PYTHON_LIBRARIES})
 add_subdirectory(extern/pybind11)
@@ -37,7 +36,7 @@ pybind11_add_module(
 )
 
 pkg_check_modules(OpenCV REQUIRED opencv)
-include_directories(${OpenCV_CFLAGS})
+include_directories(${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJ_NAME} ${OpenCV_LDFLAGS})
 
 pkg_check_modules(eigen3 REQUIRED)

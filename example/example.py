@@ -14,7 +14,7 @@ SCRIPT_DIR = str(Path().parent)
 Skeleton to Graph convertion
 """
 scale = 2.0
-skeleton_image = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton_test.png", cv2.IMREAD_ANYDEPTH)
+skeleton_image = cv2.imread(f"{SCRIPT_DIR}/example/data/skeleton.png", cv2.IMREAD_ANYDEPTH)
 skeleton_image = cv2.resize(skeleton_image, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_NEAREST)
 image_height, image_width = skeleton_image.shape
 
