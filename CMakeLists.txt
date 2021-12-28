@@ -18,7 +18,8 @@ if (OPENMP_FOUND)
     MESSAGE("OPENMP IS ENABLED")
 endif()
 
-find_package(Python3 3.6 EXACT COMPONENTS Interpreter Development NumPy REQUIRED)
+# @TODO: reduce the specific version dependency of python
+find_package(Python3 3.8 EXACT COMPONENTS Interpreter Development NumPy REQUIRED)
 MESSAGE("PYTHON_INCLUDE_DIRS : " ${PYTHON_INCLUDE_DIRS})
 MESSAGE("PYTHON_LIBRARIES : " ${PYTHON_LIBRARIES})
 add_subdirectory(extern/pybind11)
