@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+from platform import python_version
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -31,7 +32,11 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-        cmake_args = ["-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir, "-DPYTHON_EXECUTABLE=" + sys.executable]
+        cmake_args = [
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+            "-DPYTHON_EXECUTABLE=" + sys.executable,
+            "-DPYTHON_INTERPRETER_VERSION_CALLING_SETUP_SCRIPT=" + str(python_version()),
+        ]
 
         cfg = "Debug" if self.debug else "Release"
         build_args = ["--config", cfg]
@@ -43,6 +48,7 @@ class CMakeBuild(build_ext):
         env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get("CXXFLAGS", ""), self.distribution.get_version())
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
+
         subprocess.check_call(["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
         subprocess.check_call(["cmake", "--build", "."] + build_args, cwd=self.build_temp)
 
