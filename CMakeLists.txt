@@ -7,6 +7,8 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "-O3 -std=c++11 -pthread -fPIC -fwrapv -Wall -fno-strict-aliasing")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+include_directories(include extern/pybind11/include)
+
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP)
@@ -15,7 +17,6 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   message("OPENMP IS ENABLED")
 endif()
-
 
 if(DEFINED PYTHON_INTERPRETER_VERSION_CALLING_SETUP_SCRIPT)
   set(PYTHON_INTERPRETER_VERSION ${PYTHON_INTERPRETER_VERSION_CALLING_SETUP_SCRIPT})
@@ -32,15 +33,13 @@ find_package(
 message("PYTHON_INCLUDE_DIRS : " ${PYTHON_INCLUDE_DIRS})
 message("PYTHON_LIBRARIES : " ${PYTHON_LIBRARIES})
 
-
 add_subdirectory(extern/pybind11)
-include_directories(include extern/pybind11/include)
 pybind11_add_module(${PROJ_NAME} ${PYTHON_INCLUDE_DIRS}
                     src/bindings.cpp
                     src/ndarray_converter.cpp)
 
 pkg_check_modules(OpenCV REQUIRED opencv)
-include_directories(${OpenCV_CFLAGS})
+include_directories(${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJ_NAME} ${OpenCV_LDFLAGS})
 
 pkg_check_modules(eigen3 REQUIRED)
